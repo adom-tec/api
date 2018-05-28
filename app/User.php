@@ -9,7 +9,7 @@ class User extends Authenticatable
 {
     protected $table = 'sec.Users';
 
-    use Notifiable;
+    use HasApiTokens, Notifiable;
 
     /**
      * The attributes that should be hidden for arrays.
