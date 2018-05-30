@@ -17,7 +17,7 @@ class AddPermissionData
     {
         if ($request->isMethod('post') && $request->path() == 'oauth/token' ) {
             $response = $next($request);
-            dd($response);
+            dd($response->content);
             return $response;
         }
         
