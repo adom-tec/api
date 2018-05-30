@@ -22,4 +22,12 @@ class User extends Authenticatable
     protected $hidden = [
         'Password'
     ];
+    public function findForPassport($username) {
+        return $this->whereEmail($username)->first();
+    }
+
+    public function getAuthPassword()
+    {
+        return $this->Password;
+    }
 }
