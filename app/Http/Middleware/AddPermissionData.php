@@ -20,7 +20,7 @@ class AddPermissionData
             $response = $next($request);
             $content = json_decode($response->getContent(), true);
             if (array_key_exists('access_token', $content)) {
-                $user = User::whereEmail($request->input('email'))->first();
+                $user = User::whereEmail($request->input('username'))->first();
                 dd($user);
                 $content['permissions'] = $user->getMenu();
 
