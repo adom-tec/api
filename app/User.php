@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 class User extends Authenticatable
 {
     protected $table = 'sec.Users';
+    protected $primaryKey = 'UserId';
 
     use HasApiTokens, Notifiable;
 
