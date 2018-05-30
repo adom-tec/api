@@ -26,9 +26,8 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        Route::group(['middleware'=>'add.permission.data'], function(){
+        \Route::group(['middleware'=>'add.permission.data'], function(){
             Passport::routes(); 
         });
-        //
     }
 }
