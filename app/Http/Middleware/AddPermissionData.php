@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use App\User;
 
 class AddPermissionData
 {
@@ -17,8 +18,15 @@ class AddPermissionData
     {
         if ($request->isMethod('post') && $request->path() == 'oauth/token' ) {
             $response = $next($request);
-            dd($response->getContent());
+            $content = json_decode($response->getContent(), true);
+            if (array_key_exists('access_token', $content)) {
+                $user = User::whereEmail($request->input('email'))->first();
+                dd($user);
+                $content['permissions'] = $user->getMenu();
+
+            }
             return $response;
+            
         }
         
         return $next($request);
