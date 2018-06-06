@@ -11,10 +11,12 @@ use App\ActionResource;
 
 class User extends Authenticatable
 {
+    
+    use HasApiTokens, Notifiable;
+
     protected $table = 'sec.Users';
     protected $primaryKey = 'UserId';
-
-    use HasApiTokens, Notifiable;
+    protected $fillable = ["FirstName", "SecondName","Surname","SecondSurname", "Email", "State", "Password"];
 
     public $timestamps = false;
     /**
