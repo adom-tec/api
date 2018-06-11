@@ -46,16 +46,18 @@ class UserRoleController extends Controller
                 }
                 
                 UserRole::insert($usersRoles);
-                \DB::commit();
-                return response()->json([
-                    'message' => 'Roles del usuario modificado correctamente'
-                ], 200);
+
             }
+
+            \DB::commit();
+            return response()->json([
+                'message' => 'Roles del usuario modificado correctamente'
+            ], 200);
         } catch (\Exception $e) {
             \DB::rollback();
             return response()->json([
                 'message' => 'Error, no se pudo modificar los roles al usuario, por favor intente de nuevo'
-            ], 500, $headers);
+            ], 500);
         }
         
         

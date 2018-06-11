@@ -17,4 +17,8 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::resource('users', 'UserController');
     Route::resource('roles', 'RoleController');
     Route::resource('users/{user}/roles', 'UserRoleController');
+    Route::get('modules', 'ModuleController@index');
+    Route::get('modules/{module}/actionsresources', 'ActionResourceController@getByModule');
+    Route::get('roles/{role}/actionsresources', 'ActionResourceController@getByRole');
+    Route::post('roles/{role}/actionsresources', 'ActionResourceController@store');
 });
