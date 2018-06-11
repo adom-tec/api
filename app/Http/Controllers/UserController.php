@@ -16,7 +16,7 @@ class UserController extends Controller
 
     public function index()
     {
-        return User::paginate();
+        return User::all();
     }
 
     /**
@@ -66,7 +66,7 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $request->validate([
-            'Email' => 'email|unique:sqlsrv.sec.Users,email',
+            'Email' => 'email',
             'State' => 'boolean',
         ]);
 
