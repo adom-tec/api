@@ -21,4 +21,17 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('modules/{module}/actionsresources', 'ActionResourceController@getByModule');
     Route::get('roles/{role}/actionsresources', 'ActionResourceController@getByRole');
     Route::post('roles/{role}/actionsresources', 'ActionResourceController@store');
+    Route::resource('patients', 'PatientController');
+    Route::get('documenttypes', 'DocumentTypeController@index');
+    Route::get('unittimes', 'UnitTimeController@index');
+    Route::get('genders', 'GenderController@index');
+    Route::get('patienttypes', 'PatientTypeController@index');
+    Route::resource('professionals', 'ProfessionalController');
+    Route::resource('coordinators', 'CoordinatorController');
+    Route::resource('entities', 'EntityController');
+    Route::resource('entities/{entity}/plans', 'PlanEntityController');
+    Route::resource('services', 'ServiceController');
+    Route::resource('plans/{plan}/services', 'PlanServiceController');
+    Route::get('specialties', 'SpecialtyController@index');
+    Route::get('accountTypes', 'AccountTypeController@index');
 });

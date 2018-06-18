@@ -56,8 +56,14 @@ class ActionResourceController extends Controller
         $role = Role::findOrFail($role)->RoleId;
         $actionsResources = $request->input('actionsResources');
         \DB::beginTransaction();
+        $module = $request->input('moduleId');
         try {
-            RoleActionResource::where('RoleId', $role)->delete();
+            RoleActionResource::join('sec.ActionsResources', 'sec.ActionsResources.ActionResourceId', '=', 'sec.RolesActionsResources.ActionResourceId')
+                ->join('sec.Resources', function($join) use ($module) {
+                    $join->on('sec.ActionsResources.ResourceId', '=', 'sec.Resources.ResourceId')
+                        ->where('sec.Resources.ModuleId', $module);
+                })
+                ->where('RoleId', $role)->delete();
             if (count($actionsResources)) {
                 $request->validate([
                     'actionsResources.*' => 'exists:sqlsrv.sec.ActionsResources,ActionResourceId'

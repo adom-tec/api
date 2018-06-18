@@ -14,7 +14,7 @@ class UserController extends Controller
      */
 
 
-    public function index()
+    public function index(Request $request)
     {
         return User::all();
     }
@@ -29,15 +29,14 @@ class UserController extends Controller
     {
         $request->validate([
             'FirstName' => 'required',
-            'SecondName' => 'required',
             'Surname' => 'required',
-            'SecondSurname' => 'required',
             'Email' => 'required|email|unique:sqlsrv.sec.Users,email',
             'State' => 'required|boolean',
             'Password' => 'required'
         ]);
-
+        
         $user = new User($request->all());
+        $user->Password = bcrypt($request->input('Password'));
         $user->save();
 
         return response()->json($user, 201);
@@ -51,6 +50,9 @@ class UserController extends Controller
      */
     public function show($id, Request $request)
     {
+        if ($this->checkEmail($id)) {
+            return User::where('Email', $id)->firstOrFail();
+        }
         $user = $id != 'me' ? User::findOrFail($id) : $request->user();
         return  $user;
     }
@@ -102,4 +104,14 @@ class UserController extends Controller
             'message' => 'Usuario eliminado correctamente'
         ], 200);
     }
+
+    private function checkEmail($email) {
+        if ( strpos($email, '@') !== false ) {
+           $split = explode('@', $email);
+           return (strpos($split['1'], '.') !== false ? true : false);
+        }
+        else {
+           return false;
+        }
+     }
 }
