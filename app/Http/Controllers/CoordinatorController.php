@@ -38,10 +38,15 @@ class CoordinatorController extends Controller
         $dataCoordinator = $request->except(['FirstName', 'SecondName', 'Surname', 'SecondSurname', 'Email']);
         $coordinator = new Coordinator($dataCoordinator);
         $user = User::where('Email', $request->input('Email'))->first();
+        $dataUser = $request->only(['FirstName', 'SecondName', 'Surname', 'SecondSurname', 'Email']);
+
         if (!$user) {
-            $user = new User($request->only(['FirstName', 'SecondName', 'Surname', 'SecondSurname', 'Email']));
-            $user->save();
+            $user = new User($dataUser);
+            $user->Password = bcrypt('12345');
+        } else {
+            $user->fill($dataUser);
         }
+        $user->save();
         $coordinator->UserId = $user->UserId;
         $coordinator->save();
         $coordinator->load('user');

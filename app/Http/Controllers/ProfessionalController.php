@@ -45,10 +45,14 @@ class ProfessionalController extends Controller
         $dataProfessional = $request->except(['FirstName', 'SecondName', 'Surname', 'SecondSurname', 'Email']);
         $professional = new Professional($dataProfessional);
         $user = User::where('Email', $request->input('Email'))->first();
+        $dataUser = $request->only(['FirstName', 'SecondName', 'Surname', 'SecondSurname', 'Email']);
         if (!$user) {
-            $user = new User($request->only(['FirstName', 'SecondName', 'Surname', 'SecondSurname', 'Email']));
-            $user->save();
+            $user = new User($dataUser);
+            $user->Password = bcrypt('12345');
+        } else {
+            $user->fill($dataUser);
         }
+        $user->save();
         $professional->UserId = $user->UserId;
         $professional->save();
         $professional->load('user');

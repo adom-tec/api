@@ -34,4 +34,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::resource('plans/{plan}/services', 'PlanServiceController');
     Route::get('specialties', 'SpecialtyController@index');
     Route::get('accountTypes', 'AccountTypeController@index');
+    Route::resource('patients/{patient}/services', 'PatientServiceController');
+    Route::get('copaymentfrecuencies', 'CoPaymentFrecuencyController@index');
+    Route::get('servicefrecuencies', 'ServiceFrecuencyController@index');
 });
