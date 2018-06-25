@@ -9,14 +9,22 @@ use App\User;
 
 class ProfessionalController extends Controller
 {
+    
+    public function __construct()
+    {
+        $this->middleware('get.columns.to.return')->only('index');
+    }
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Professional::with(['gender', 'specialty', 'documentType', 'accountType', 'user'])->get();
+        $with = $request->input('with') ? $request->input('with') : ['gender', 'specialty', 'documentType', 'accountType', 'user'];
+        $professionals = Professional::with($with);
+        $professionals = $request->input('keys') ? $professionals->get($request->input('keys')) : $professionals->get();
+        return $professionals;
     }
 
     /**

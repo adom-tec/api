@@ -102,6 +102,7 @@ class PatientController extends Controller
         }
         $patient->NameCompleted = $nameComplete;
         $patient->save();
+        $patient->load(['documentType', 'unitTime', 'gender', 'patientType']);
 
         return response()->json($patient, 200);
 

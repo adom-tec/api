@@ -8,4 +8,6 @@ class ServiceFrecuency extends Model
 {
     protected $table = 'cfg.ServiceFrecuency';
     protected $primaryKey = 'ServiceFrecuencyId';
+
+    public $timestamps = false;
 }

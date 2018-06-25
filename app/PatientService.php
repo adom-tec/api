@@ -3,12 +3,21 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use App\ServiceDetail;
 
 class PatientService extends Model
 {
     protected $table = 'sas.AssignService';
     protected $primaryKey = 'AssignServiceId';
-    protected $appends = ['countScheduledVisits', 'countMadeVisits'];
+    protected $fillable = ["AuthorizationNumber", "Validity", "ApplicantName","ServiceId",
+    "Quantity","InitialDate","FinalDate","ServiceFrecuencyId","ProfessionalId","CoPaymentAmount",
+    "CoPaymentFrecuencyId","Consultation","External","StateId","Observation","ContractNumber",
+    "EntityId","PlanEntityId", "Cie10","DescriptionCie10","AssignedBy","CopaymentStatus","TotalCopaymentReceived",
+    "OtherValuesReceived","DeliveredCopayments","Discounts","InvoiceNumber","DelieveredCopaymentDate", "ReceivedBy"];
+    protected $appends = ['countMadeVisits', 'copaymentReceived'];
+
+    const CREATED_AT = 'RecordDate';
+    const UPDATED_AT = null;
 
     public function patient()
     {
@@ -19,7 +28,7 @@ class PatientService extends Model
     {
         return $this->belongsTo('App\Service', 'ServiceId');
     }
-
+    
     public function serviceFrecuency()
     {
         return $this->belongsTo('App\ServiceFrecuency', 'ServiceFrecuencyId');
@@ -50,15 +59,16 @@ class PatientService extends Model
         return $this->belongsTo('App\PlanService', 'PlanEntityId');
     }
 
-    public function getCountScheduledVisitsAttribute()
-    {
-        return ServiceVisit::where('AssignServiceId', $this->AssignServiceId)->count();
-    }
-
     public function getCountMadeVisitsAttribute()
     {
         return ServiceVisit::where('AssignServiceId', $this->AssignServiceId)
             ->where('StateId', '>', '1')
             ->count();
+    }
+
+    public function getCopaymentReceivedAttribute()
+    {
+        return ServiceDetail::where('AssignServiceId', $this->AssignServiceId)
+            ->sum('ReceivedAmount');
     }
 }

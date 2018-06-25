@@ -34,9 +34,26 @@ class PlanServiceController extends Controller
     public function update(Request $request, $plan, $id)
     {
         $planService = PlanService::findOrFail($id);
-
+        $request->validate([
+            'Rate' => 'numeric'
+        ]);
         $planService->fill($request->all());
         $planService->save();
         return response()->json($planService, 200);
+    }
+
+    public function destroy($id)
+    {
+        $planService = PlanService::findOrFail($id);
+        try {
+            $planService->delete();
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error, El servicio no puede ser eliminado, verifique que no tenga datos asociados a este registro'
+            ], 400);
+        }
+        return response()->json([
+            'message' => 'Servicio borrado con exito'
+        ], 200);
     }
 }

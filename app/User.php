@@ -64,11 +64,6 @@ class User extends Authenticatable
             })->toArray();
 
         $total = count($actionsResources);
-        for ($i = 0; $i < $total; $i++) {
-            if (!$actionsResources[$i]['VisibleResource']) {
-                unset($actionsResources[$i]);
-            }
-        }
 
         foreach ($actionsResources as $key => $value) {
             $orderModule[$key] = $value['OrderModule'];
@@ -91,7 +86,8 @@ class User extends Authenticatable
                         'resourceId' => $actionsResources[$j]['ResourceId'],
                         'resourceName' => $actionsResources[$j]['ResourceName'],
                         'route' => $actionsResources[$j]['RouteFrontEnd'],
-                        'actions' => []
+                        'actions' => [],
+                        'visible' => $actionsResources[$j]['VisibleResource']
                     ];
                     $positionResource = count($menu[$positionModule]['resources']) - 1;
                     for ($k = $j; count($actionsResources) > 0; $k++) {

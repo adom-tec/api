@@ -8,4 +8,6 @@ class CoPaymentFrecuency extends Model
 {
     protected $table = 'cfg.CoPaymentFrecuency';
     protected $primaryKey = 'CoPaymentFrecuencyId';
+
+    public $timestamps = false;
 }
