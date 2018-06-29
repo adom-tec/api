@@ -50,4 +50,10 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('states', 'StateAssignServiceController@index');
     Route::resource('services/{service}/details', 'ServiceDetailController');
     Route::get('me/services', 'PatientServiceController@getByProfessionalLogged');
+    Route::get('cancelreasons', 'CancelReasonController@index');
+    Route::get('answers', 'QualityAnswerController@index');
+    Route::get('questions', 'QualityQuestionController@index');
+    Route::put('services/{service}/details', 'ServiceDetailController@update');
+    Route::post('services/{service}/answers', 'PatientServiceController@storeAnswer');
+    Route::post('cancelreasons', 'DetailCancelReasonController@store');
 });

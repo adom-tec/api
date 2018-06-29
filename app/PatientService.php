@@ -28,7 +28,6 @@ class PatientService extends Model
     {
         return $this->belongsTo('App\Service', 'ServiceId');
     }
-    
     public function serviceFrecuency()
     {
         return $this->belongsTo('App\ServiceFrecuency', 'ServiceFrecuencyId');

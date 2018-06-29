@@ -7,6 +7,8 @@ use App\PatientService;
 use App\Patient;
 use App\Professional;
 use Carbon\Carbon;
+use App\ServiceDetail;
+use App\DetailAnswer;
 
 class PatientServiceController extends Controller
 {
@@ -98,8 +100,8 @@ class PatientServiceController extends Controller
         $sql = "exec sas.CalculateFinalDateAssignService_editado $quantity,$serviceFrecuencyId,'$initialDate'";
         $finalDate = \DB::select(\DB::raw($sql))[0]->FinalDateAssignService;
         return response()->json([
-            'date' => Carbon::createFronFormat('Y-d-m', $finalDate)->format('Y-m-d')
-        ]);;
+            'date' => Carbon::createFromFormat('d-m-Y', $finalDate)->format('Y-m-d')
+        ]);
     }
     
 
@@ -121,9 +123,23 @@ class PatientServiceController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $patient, $id)
     {
-        //
+        $patientService = PatientService::findOrFail($id);
+        $request->validate([
+            'ServiceId' => 'exists:sqlsrv.cfg.Services,ServiceId',
+            'Quantity' => 'numeric',
+            'ServiceFrecuencyId' => 'exists:sqlsrv.cfg.ServiceFrecuency,ServiceFrecuencyId',
+            'CoPaymentFrecuencyId' => 'exists:sqlsrv.cfg.CoPaymentFrecuency,CoPaymentFrecuencyId',
+            'Consultation' => 'numeric',
+            'External' => 'numeric',
+            'EntityId' => 'exists:sqlsrv.cfg.Entities,EntityId',
+            'PlanEntityId' => 'exists:sqlsrv.cfg.PlansEntity,PlanEntityId',
+        ]);
+        $patientService->fill($request->all());
+        $patientService->load(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService']);
+        $patientService->save();
+        return response()->json($patientService, 200);
     }
 
     /**
@@ -135,5 +151,42 @@ class PatientServiceController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    public function storeAnswer($id, Request $request){
+        $servicesDetails = ServiceDetail::where('AssignServiceId', $id)
+            ->get()->pluck('AssignServiceDetailId');
+        
+        $request->validate([
+            'answers.*.AnswerId' => 'required|exists:sqlsrv.cfg.QualityAnswers,AnswerId',
+            'answers.*.QuestionId' => 'required|exists:sqlsrv.cfg.QualityQuestions,QuestionId'
+        ]);
+        if (count($servicesDetails)) {
+            $data = [];
+            $answers = $request->input('answers');
+            foreach ($servicesDetails as $serviceDetail) {
+                foreach ($answers as $answer) {
+                    $data[] = [
+                        'AnswerId' => $answer['AnswerId'],
+                        'QuestionId' => $answer['QuestionId'],
+                        'AssignServiceDetailId' => $serviceDetail
+                    ];
+                }
+                ServiceDetail::where('AssignServiceDetailId', $serviceDetail)
+                    ->update([
+                        'QualityCallDate' => Carbon::now()->format('Y-m-d'),
+                        'QualityCallUser' => $request->user()->UserId
+                    ]);
+            } 
+
+            DetailAnswer::insert($data);
+            return response()->json([
+                'message' => 'Calificación guardada con éxito'
+            ], 200);
+            
+        }
+        return response()->json([
+            'message' => 'Servicio no existe'
+        ], 404);
     }
 }

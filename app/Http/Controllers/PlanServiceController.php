@@ -42,7 +42,7 @@ class PlanServiceController extends Controller
         return response()->json($planService, 200);
     }
 
-    public function destroy($id)
+    public function destroy($plan, $id)
     {
         $planService = PlanService::findOrFail($id);
         try {

@@ -19,7 +19,7 @@ class AddPermissionData
         if ($request->isMethod('post') && $request->path() == 'oauth/token' ) {
             $response = $next($request);
             $content = json_decode($response->getContent(), true);
-            if (array_key_exists('access_token', $content)) {
+            if ($response->getStatusCode() == 200 && array_key_exists('access_token', $content)) {
                 $user = User::whereEmail($request->input('username'))->first();
                 $content['permissions'] = $user->getMenu();
                 $response->setContent($content);
