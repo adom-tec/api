@@ -30,10 +30,26 @@ class PatientServiceController extends Controller
             $request->validate([
                 'status' => 'required|exists:sqlsrv.sas.StateAssignService,Id'
             ]);
-            return PatientService::with(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService'])
-                ->where('ProfessionalId', $professional->ProfessionalId)
-                ->where('StateId', $request->input('status'))
-                ->get();
+            $professionalServices =  PatientService::select('sas.AssignService.*')
+                ->join('sas.AssignServiceDetails', function ($join) use ($professional){
+                    $join->on('sas.AssignServiceDetails.AssignServiceId', '=', 'sas.AssignService.AssignServiceId')
+                        ->where('sas.AssignServiceDetails.ProfessionalId', $professional->ProfessionalId);
+                })
+                ->with(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService'])
+                ->where('sas.AssignService.StateId', $request->input('status'))
+                ->get()
+                ->toArray();
+            $services = $professionalServices;
+            $identifiers = [];
+            for ($i = 0; $i < count($professionalServices); $i++) {
+                if (array_search($professionalServices[$i]['AssignServiceId'], $identifiers) === false) {
+                    $identifiers[] = $professionalServices[$i]['AssignServiceId'];
+                } else {
+                    unset($services[$i]);
+                }
+            }
+
+            return array_values($services);
         }
         return response()->json([
             'message' => 'Su usario no está configurado como profesional'
@@ -46,6 +62,7 @@ class PatientServiceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
+
     public function store(Request $request, $patient)
     {
         $patient = Patient::findOrFail($patient)->PatientId;
@@ -101,9 +118,9 @@ class PatientServiceController extends Controller
         $finalDate = \DB::select(\DB::raw($sql))[0]->FinalDateAssignService;
         return response()->json([
             'date' => Carbon::createFromFormat('d-m-Y', $finalDate)->format('Y-m-d')
+
         ]);
     }
-    
 
     /**
      * Display the specified resource.

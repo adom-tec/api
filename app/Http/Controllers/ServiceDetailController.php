@@ -2,16 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Professional;
 use Illuminate\Http\Request;
 use App\ServiceDetail;
 use Carbon\Carbon;
 
 class ServiceDetailController extends Controller
 {
-    public function index($service)
+    public function index($service, $me = false, Request $request)
     {
-        return ServiceDetail::where('AssignServiceId', $service)
-            ->orderBy('Consecutive', 'asc')
+        $query = ServiceDetail::where('AssignServiceId', $service);
+        if ($me) {
+            $professional = Professional::where('UserId', $request->user()->UserId)->first();
+            if ($professional) {
+                $query->where('ProfessionalId', $professional->ProfessionalId);
+            } else {
+                return response()->json([
+                    'message' => 'Su usario no está configurado como profesional'
+                ], 403);
+            }
+        }
+        return $query->orderBy('Consecutive', 'asc')
             ->with(['professional', 'state', 'detailCancelReason'])
             ->get();
     }

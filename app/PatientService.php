@@ -24,6 +24,11 @@ class PatientService extends Model
         return $this->belongsTo('App\Patient', 'PatientId');
     }
 
+    public function supplies()
+    {
+        return $this->belongsToMany('App\Supply', 'sas.AssignServiceSupply', 'AssignServiceId', 'AssignServiceId');
+    }
+
     public function service()
     {
         return $this->belongsTo('App\Service', 'ServiceId');

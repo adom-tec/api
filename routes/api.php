@@ -48,6 +48,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('lockservice', 'LockServiceController@index');
     Route::put('lockservice', 'LockServiceController@update');
     Route::get('states', 'StateAssignServiceController@index');
+    Route::get('services/{service}/details/{me}', 'ServiceDetailController@index');
     Route::resource('services/{service}/details', 'ServiceDetailController');
     Route::get('me/services', 'PatientServiceController@getByProfessionalLogged');
     Route::get('cancelreasons', 'CancelReasonController@index');
@@ -56,4 +57,5 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::put('services/{service}/details', 'ServiceDetailController@update');
     Route::post('services/{service}/answers', 'PatientServiceController@storeAnswer');
     Route::post('cancelreasons', 'DetailCancelReasonController@store');
+    Route::get('copayments', 'CopaymentController@index');
 });
