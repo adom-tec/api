@@ -39,17 +39,27 @@ class PatientServiceController extends Controller
                 ->where('sas.AssignService.StateId', $request->input('status'))
                 ->get()
                 ->toArray();
-            $services = $professionalServices;
+            $count = count($professionalServices);
             $identifiers = [];
-            for ($i = 0; $i < count($professionalServices); $i++) {
+            for ($i = 0; $i < $count; $i++) {
                 if (array_search($professionalServices[$i]['AssignServiceId'], $identifiers) === false) {
                     $identifiers[] = $professionalServices[$i]['AssignServiceId'];
+                    $details = ServiceDetail::where('AssignServiceId', $professionalServices[$i]['AssignServiceId'])
+                        ->where('ProfessionalId', $professional->ProfessionalId)->get()->toArray();
+                    $professionalServices[$i]['Quantity'] = count($details);
+                    $copaymentReceived = array_sum(array_column($details, 'ReceivedAmount'));
+                    $professionalServices[$i]['copaymentReceived'] = $copaymentReceived;
+                    $countMadeVisits = ServiceDetail::where('AssignServiceId', $professionalServices[$i]['AssignServiceId'])
+                        ->where('ProfessionalId', $professional->ProfessionalId)
+                        ->where('StateId', '>', 1)
+                        ->count();
+                    $professionalServices[$i]['countMadeVisits'] = $countMadeVisits;
                 } else {
-                    unset($services[$i]);
+                    unset($professionalServices[$i]);
                 }
             }
 
-            return array_values($services);
+            return array_values($professionalServices);
         }
         return response()->json([
             'message' => 'Su usario no está configurado como profesional'

@@ -23,7 +23,7 @@ class ServiceDetailController extends Controller
             }
         }
         return $query->orderBy('Consecutive', 'asc')
-            ->with(['professional', 'state', 'detailCancelReason'])
+            ->with(['professional', 'state', 'detailCancelReason.cancelReason'])
             ->get();
     }
 

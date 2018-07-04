@@ -58,4 +58,5 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('services/{service}/answers', 'PatientServiceController@storeAnswer');
     Route::post('cancelreasons', 'DetailCancelReasonController@store');
     Route::get('copayments', 'CopaymentController@index');
+    Route::put('copayments/{professional}', 'CopaymentController@update');
 });

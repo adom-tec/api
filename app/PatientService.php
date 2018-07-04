@@ -14,7 +14,7 @@ class PatientService extends Model
     "CoPaymentFrecuencyId","Consultation","External","StateId","Observation","ContractNumber",
     "EntityId","PlanEntityId", "Cie10","DescriptionCie10","AssignedBy","CopaymentStatus","TotalCopaymentReceived",
     "OtherValuesReceived","DeliveredCopayments","Discounts","InvoiceNumber","DelieveredCopaymentDate", "ReceivedBy"];
-    protected $appends = ['countMadeVisits', 'copaymentReceived'];
+    protected $appends = ['countMadeVisits'];
 
     const CREATED_AT = 'RecordDate';
     const UPDATED_AT = null;
@@ -70,9 +70,9 @@ class PatientService extends Model
             ->count();
     }
 
-    public function getCopaymentReceivedAttribute()
+
+    public function details()
     {
-        return ServiceDetail::where('AssignServiceId', $this->AssignServiceId)
-            ->sum('ReceivedAmount');
+        return $this->hasMany('App\ServiceDetail', 'AssignServiceId');
     }
 }
