@@ -59,4 +59,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('cancelreasons', 'DetailCancelReasonController@store');
     Route::get('copayments', 'CopaymentController@index');
     Route::put('copayments/{professional}', 'CopaymentController@update');
+    Route::get('copayments/pdf/{id}', 'CopaymentController@pdf')->name('copayment.pdf');
+    Route::get('copayments/excel/{id}', 'CopaymentController@pdf')->name('copayment.excel');
+    Route::get('professionalrates', 'ProfesionalRateController@index');
 });

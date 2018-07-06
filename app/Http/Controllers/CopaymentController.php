@@ -7,6 +7,8 @@ use App\ServiceDetail;
 use App\ServiceSupply;
 use Illuminate\Http\Request;
 use App\PatientService;
+use App\CollectionAccount;
+use Carbon\Carbon;
 
 class CopaymentController extends Controller
 {
@@ -21,6 +23,91 @@ class CopaymentController extends Controller
         $initDate = $request->input('InitDate');
         $finalDate = $request->input('FinalDate');
         $copaymentStatus = $request->input('CopaymentState');
+        return $this->getServices($professionalId, $initDate, $finalDate, $copaymentStatus, $request->input('StateId'));
+    }
+
+    public function update(Request $request, $professional)
+    {
+        $professional = Professional::findOrFail($professional)->ProfessionalId;
+        $request->validate([
+            'services.*' => 'required:exists:sqlsrv.sas.AssignService,AssignServiceId',
+            'InitDate' => 'required',
+            'FinalDate' => 'required',
+        ]);
+        $services = PatientService::whereIn('AssignServiceId', $request->input('services'));
+
+        if ($request->input('StateId') == 1 || $request->input('StateId') == 2) {
+            $services->where('StateId', $request->input('StateId'));
+        } else {
+            $services->where('StateId', '<>', 3);
+        }
+
+        $services = $services->get();
+        $initDate = $request->input('InitDate');
+        $finalDate = $request->input('FinalDate');
+        $services->load(['details' => function ($query) use ($professional, $initDate, $finalDate) {
+            $query->where('sas.AssignServiceDetails.ProfessionalId', $professional)
+                ->whereBetween('DateVisit', [$initDate, $finalDate])
+                ->where('StateId', 2)
+                ->where('delivered', 0);
+        }]);
+
+        $isOwner = true;
+
+        foreach ($services as $service) {
+            if (!count($service->details)) {
+                $isOwner = false;
+                break;
+            }
+        }
+
+        if (!$isOwner) {
+            return response()->json([
+                'message' => 'El profesional no está asignado en algunos servicios'
+            ], 400);
+        }
+
+        \DB::beginTransaction();
+        foreach ($services as $service) {
+            $details = $service->details->toArray();
+            $copaymentReceived = array_sum(array_column($details, 'ReceivedAmount'));
+            $othersAmountReceived = array_sum(array_column($details, 'OtherAmount'));
+            $service->TotalCopaymentReceived += $copaymentReceived;
+            $service->OtherValuesReceived += $othersAmountReceived;
+            $service->DeliveredCopayments = $service->TotalCopaymentReceived;
+            $detailsId = array_column($details, 'AssignServiceDetailId');
+            ServiceDetail::whereIn('AssignServiceDetailId', $detailsId)
+                ->update(['delivered' => 1]);
+            $queryDetails = ServiceDetail::where('AssignServiceId', $service->AssignServiceId);
+            $detailsDelivered = $queryDetails->where('delivered', 1)->count();
+            $detailsTotal = $queryDetails->count();
+            if ($detailsDelivered == $detailsTotal) {
+                $service->CopaymentStatus = 1;
+            }
+            $service->save();
+        }
+
+        $collectionAccount = new CollectionAccount();
+        $collectionAccount->observation = $request->input('observation');
+        $collectionAccount->save();
+
+        try {
+            $pdf = $this->pfd($professional, $initDate, $finalDate, $collectionAccount, $request->input('StateId'));
+        } catch (\Exception $e) {
+            \DB::rollback();
+            return response()->json([
+                'message' => $e->getMessage(),
+                'error' => $e->getTrace()
+            ], 500);
+        }
+        
+        \DB::commit();
+        $pdf->setPaper('A4', 'landscape');
+        return $pdf->stream();
+    }
+
+    private function getServices($professionalId, $initDate, $finalDate, $copaymentStatus, $stateId)
+    {
         $assignServices = PatientService::select('sas.AssignService.*')
             ->join('sas.AssignServiceDetails', function ($join) use ($professionalId, $initDate, $finalDate, $copaymentStatus) {
                 $join->on('sas.AssignServiceDetails.AssignServiceId', '=', 'sas.AssignService.AssignServiceId')
@@ -31,14 +118,13 @@ class CopaymentController extends Controller
             })
             ->orderBy('sas.AssignService.AssignServiceId')
             ->with(['patient.documentType', 'entity', 'service', 'coPaymentFrecuency']);
-        if (array_search($request->input('StateId'), [1,2])) {
-            $assignServices->where('sas.AssignService.StateId', $request->input('StateId'));
+        if ($stateId == 1 || $stateId == 2) {
+            $assignServices->where('sas.AssignService.StateId', $stateId);
         } else {
             $assignServices->where('sas.AssignService.StateId', '<>', 3);
         }
 
         $assignServices = $assignServices->get();
-        //return $assignServices;
         $count = count($assignServices);
         $identifiers = [];
         for ($i = 0; $i < $count; $i++) {
@@ -83,72 +169,35 @@ class CopaymentController extends Controller
                 'OtherValuesReceived' => array_sum(array_column($service->details->toArray(), 'OtherAmount'))
             ];
         }
-
         return $data;
     }
 
-    public function update(Request $request, $professional)
+    private function pfd($ProfessionalId, $InitDate, $FinalDate, $collectionAccount, $StateId)
     {
-        $professional = Professional::findOrFail($professional)->ProfessionalId;
-        $request->validate([
-            'services.*' => 'required:exists:sqlsrv.sas.AssignService,AssignServiceId',
-            'InitDate' => 'required',
-            'FinalDate' => 'required',
-        ]);
-        $services = PatientService::whereIn('AssignServiceId', $request->input('services'));
+        $services = $this->getServices($ProfessionalId, $InitDate, $FinalDate, 1, $StateId);
 
-        if (array_search($request->input('StateId'), [1,2])) {
-            $services->where('StateId', $request->input('StateId'));
-        } else {
-            $services->where('StateId', '<>', 3);
+        $professional = Professional::findOrFail($ProfessionalId);
+        $initDate = Carbon::createFromFormat('Y-m-d', $InitDate)->format('d/m/Y');
+        $finalDate = Carbon::createFromFormat('Y-m-d', $FinalDate)->format('d/m/Y');
+        $period = $initDate . ' hasta ' . $finalDate;
+        $name = $professional->user->FirstName . ' ';
+        if ($professional->user->SecondName) {
+            $name .= $professional->user->SecondName . ' ';
         }
-
-        $services = $services->get();
-        $initDate = $request->input('InitDate');
-        $finalDate = $request->input('FinalDate');
-        $services->load(['details' => function ($query) use ($professional, $initDate, $finalDate) {
-            $query->where('sas.AssignServiceDetails.ProfessionalId', $professional)
-                ->whereBetween('DateVisit', [$initDate, $finalDate])
-                ->where('StateId', 2)
-                ->where('delivered', 0);
-        }]);
-
-        $isOwner = true;
-
-        foreach ($services as $service) {
-            if (!count($service->details)) {
-                $isOwner = false;
-                break;
-            }
+        $name .= $professional->user->Surname . ' ';
+        if ($professional->user->SecondSurname) {
+            $name .= $professional->user->SecondSurname;
         }
+        $data = [
+            'collectionAccount' => $collectionAccount,
+            'services' => $services,
+            'professional' => $professional,
+            'period' => $period,
+            'now' => Carbon::now()->format('d/m/Y'),
+            'name' => $name
+        ];
 
-        if (!$isOwner) {
-            return response()->json([
-                'message' => 'El profesional no está asignado en algunos servicios'
-            ], 400);
-        }
-
-        foreach ($services as $service) {
-            $details = $service->details->toArray();
-            $copaymentReceived = array_sum(array_column($details, 'ReceivedAmount'));
-            $othersAmountReceived = array_sum(array_column($details, 'OtherAmount'));
-            $service->TotalCopaymentReceived += $copaymentReceived;
-            $service->OtherValuesReceived += $othersAmountReceived;
-            $service->DeliveredCopayments = $service->TotalCopaymentReceived;
-            $detailsId = array_column($details, 'AssignServiceDetailId');
-            ServiceDetail::whereIn('AssignServiceDetailId', $detailsId)
-                ->update(['delivered' => 1]);
-            $queryDetails = ServiceDetail::where('AssignServiceId', $service->AssignServiceId);
-            $detailsDelivered = $queryDetails->where('delivered', 1)->count();
-            $detailsTotal = $queryDetails->count();
-            if ($detailsDelivered == $detailsTotal) {
-                $service->CopaymentStatus = 1;
-            }
-            $service->save();
-        }
-
-        return response()->json([
-            'message' => 'Servicios Actualizados con exito'
-        ]);
+        $pdf = \PDF::loadView('pdf.copayment', $data);
+        return $pdf;
     }
 }

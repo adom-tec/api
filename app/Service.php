@@ -8,7 +8,7 @@ class Service extends Model
 {
     protected $table = 'cfg.Services';
     protected $primaryKey = 'ServiceId';
-    protected $fillable = ['Value','Code','Name','ClassificationId','ServiceTypeId','HoursToInvest'];
+    protected $fillable = ['Value','Code','Name','ClassificationId','ServiceTypeId','HoursToInvest', 'special_value',  'particular_value', 'holiday_value'];
     
 
     public $timestamps = false; 
