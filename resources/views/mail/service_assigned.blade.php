@@ -8,11 +8,12 @@
 <p><b>Teléfono:</b>{{ $service->patient->Telephone1 }}</p>
 <p><b>Nro. Autorización:</b>{{ $service->AuthorizationNumber }}</p>
 <p><b>Servicio:</b>{{ $service->service->Name }}</p>
-<p><b>Fecha inicio*:</b>{{ $service->InitialDate }}</p>
-<p><b>Fecha finalización**:</b>{{ $service->FinalDate }}</p>
+<p><b>Fecha inicio*:</b>{{ $InitialDate }}</p>
+<p><b>Fecha finalización**:</b>{{ $FinalDate }}</p>
 <p><b>Frecuencia Terapia:</b>{{ $service->coPaymentFrecuency->Name }}</p>
 <p><b>Valor Copago:</b>{{ $service->coPaymentAmount }}</p>
 <p><b>Frecuencia Copago:</b>{{ $service->coPaymentFrecuency->Name }}</p>
+<p><b>Entidad:</b> {{ $service->entity->Name }}</p>
 <br>
 <br>
 <a href="#">Ingreso a Blue</a>

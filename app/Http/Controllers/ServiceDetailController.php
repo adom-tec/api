@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\DetailCancelReason;
 use App\Professional;
 use Illuminate\Http\Request;
 use App\ServiceDetail;
@@ -23,7 +24,7 @@ class ServiceDetailController extends Controller
             }
         }
         return $query->orderBy('Consecutive', 'asc')
-            ->with(['professional', 'state', 'detailCancelReason.cancelReason'])
+            ->with(['professional.user', 'state', 'detailCancelReason.cancelReason'])
             ->get();
     }
 
@@ -82,6 +83,10 @@ class ServiceDetailController extends Controller
         
         $serviceId = \DB::select(\DB::raw($sql))[0]->AssignServiceId;
         $serviceDetail->professional_rate_id = $detail['professional_rate_id'] ? $detail['professional_rate_id'] : $serviceDetail->professional_rate_id;
+        if ($serviceDetail->StateId != 3) {
+            DetailCancelReason::where('AssignServiceDetailId', $serviceDetail->AssignServiceDetailId)
+                ->delete();
+        }
         $serviceDetail->save();
     }
 }

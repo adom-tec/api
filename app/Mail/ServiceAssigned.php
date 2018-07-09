@@ -6,6 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Carbon\Carbon;
 
 class ServiceAssigned extends Mailable
 {
@@ -13,6 +14,8 @@ class ServiceAssigned extends Mailable
 
     public $professionalName;
     public $service;
+    public $InitialDate;
+    public $FinalDate;
     /**
      * Create a new message instance.
      *
@@ -22,6 +25,8 @@ class ServiceAssigned extends Mailable
     {
         $this->professionalName = $professionalName;
         $this->service = $service;
+        $this->InitialDate = Carbon::createFromFormat('Y-m-d', $service->InitialDate)->format('d/m/Y');
+        $this->FinalDate = Carbon::createFromFormat('Y-m-d', $service->FinalDate)->format('d/m/Y');
     }
 
     /**

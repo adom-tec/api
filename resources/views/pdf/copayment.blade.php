@@ -46,14 +46,22 @@
             #firmas {
                 position: absolute;
                 bottom: 0;
-                vertical-align: top; 
             }
             #firmas .firma {
                 display: inline-block;
                 width: 40%;
                 border-top: solid 1px black;
                 text-align: center;
+                vertical-align: top;
             }
+            #payment-detail .no-border {
+                border: none;
+            }
+            #payment-detail tfoot th {
+                text-align: right;
+                background-color: #f7f7f7;
+            }
+
         </style>
     </head>
 
@@ -78,7 +86,7 @@
                 <th>Nombre del Profesional:</th>
                 <td>{{ $name }}</td>
                 <th>Numero de Documento:</th>
-                <td>{{ $professional->Document }}</td>
+                <td colspan="3">{{ $professional->Document }}</td>
                 <th>Telefono:</th>
                 <td>{{ $professional->Telephone1 }}</td>
             </tr>
@@ -106,7 +114,6 @@
                     <th>CUANTOS KIT UTILIZO</th>
                     <th>VALORA ENTREGAR</th>
                     <th>SUBTOTAL</th>
-                    <th>VALOR A PAGAR</th>
                 </tr>
             </thead>
             <tbody>
@@ -123,14 +130,40 @@
                     <td>{{ $service['CoPaymentFrecuency'] }}</td>
                     <td>{{ number_format($service['TotalCopaymentReceived'], 2, ',', '.') }}</td>
                     <td>{{ $service['Pin'] }}</td>
-                    <td>{{ $service['KITMNB'] ? 'SI' : 'No' }}</td>
-                    <td>{{ $service['KITMNB'] }}</td>
+                    <td>{{ $service['KITMNB']}}</td>
+                    <td>{{ $service['QuantityKITMNB'] }}</td>
                     <td>{{ number_format($service['TotalCopaymentReceived'], 2, ',', '.') }}</td>
                     <td>{{ number_format($service['SubTotal'], 2, ',', '.') }}</td>
-                    <td>{{ number_format($service['Total'], 2, ',', '.') }}</td>   
-                </tr>   
+                </tr>
             @endforeach
             </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="9" class="no-border"></td>
+                    <th colspan="5">TOTAL COPAGOS RECIBIDOS
+                    </th><td>{{ $totalCopaymentReceived }}</td>
+                </tr>
+                <tr>
+                    <td colspan="9" class="no-border"></td>
+                    <th colspan="5">SUBTOTAL A PAGAR AL PROFESIONAL
+                    </th><td>{{ $subTotal }}</td>
+                </tr>
+                <tr>
+                    <td colspan="9" class="no-border"></td>
+                    <th colspan="5">MONTO CONSERVADO POR EL PROFESIONAL
+                    </th><td>{{ $professionalTakenAmount }}</td>
+                </tr>
+                <tr>
+                    <td colspan="9" class="no-border"></td>
+                    <th colspan="5">TOTAL COPAGOS ENTREGADOS
+                    </th><td>{{ $totalCopaymentDelivered }}</td>
+                </tr>
+                <tr>
+                    <td colspan="9" class="no-border"></td>
+                    <th colspan="5">TOTAL A PAGAR AL PROFESIONAL</th>
+                    <td> {{ $total }}</td>
+                </tr>
+            </tfoot>
         </table>
 
         <p style="margin: 20px 0;">Observaciones: {{ $collectionAccount->observation }}</p>

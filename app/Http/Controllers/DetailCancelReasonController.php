@@ -16,10 +16,13 @@ class DetailCancelReasonController extends Controller
         ]);
         $reasons = $request->input('reasons');
         foreach($reasons as $reason ) {
+            DetailCancelReason::where('AssignServiceDetailId', $reason['AssignServiceDetailId'])
+                ->delete();
             $detailCancelReason = new DetailCancelReason();
             $detailCancelReason->AssignServiceDetailId = $reason['AssignServiceDetailId'];
             $detailCancelReason->CancelReasonId = $reason['CancelReasonId'];
             $detailCancelReason->save();
+
         }
         return response()->json([
             'message' => 'Razones asociadas exitosamente '

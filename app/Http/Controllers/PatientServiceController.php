@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ServiceAssigned;
 use Illuminate\Http\Request;
 use App\PatientService;
 use App\Patient;
@@ -103,14 +104,19 @@ class PatientServiceController extends Controller
         $InitialDate = Carbon::createFromFormat('Y-m-d', $InitialDate)->format('Y-d-m');
         $FinalDate = Carbon::createFromFormat('Y-m-d', $FinalDate)->format('Y-d-m');
         $sql = "exec sas.CreateAssignServiceAndDetails_editado ${patient}, '${AuthorizationNumber}', '${Validity}', '${ApplicantName}', ${ServiceId}, ${Quantity}, '${InitialDate}', '${FinalDate}', ${ServiceFrecuencyId}, ${ProfessionalId}, ${CoPaymentAmount}, ${CoPaymentFrecuencyId}, ${Consultation}, ${External}, 1, '${Observation}', '${ContractNumber}', '${Cie10}', '${DescriptionCie10}', ${PlanEntityId}, ${EntityId}, ${AssignedBy}";
-        /*$patientService = new PatientService($request->all());
-        $patientService->PatientId = $patient;
-        $patientService->StateId = 1;
-        $patientService->save();*/
         $patientService = \DB::select(\DB::raw($sql))[0]->AssignServiceId;
         $patientService = PatientService::with(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService'])
             ->findOrFail($patientService);
-        //enviar correo
+        $professional = Professional::findOrFail($ProfessionalId);
+        $name = $professional->user->FirstName . ' ';
+        if ($professional->user->SecondName) {
+            $name .= $professional->user->SecondName . ' ';
+        }
+        $name .= $professional->user->Surname . ' ';
+        if ($professional->user->SecondSurname) {
+            $name .= $professional->user->SecondSurname;
+        }
+        \Mail::to($professional->user->Email)->send(new ServiceAssigned($name, $patientService));
         return response()->json($patientService, 201);
     }
 
