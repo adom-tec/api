@@ -138,16 +138,6 @@ class PatientServiceController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
 
     /**
      * Update the specified resource in storage.
@@ -221,5 +211,43 @@ class PatientServiceController extends Controller
         return response()->json([
             'message' => 'Servicio no existe'
         ], 404);
+    }
+
+    public function getChartData($serviceType)
+    {
+        $sql = "exec sas.GetChartData $serviceType";
+        $data = \DB::select($sql);
+        return $data;
+    }
+
+    public function getIrregularServices()
+    {
+        return \DB::select("exec sas.GetIrregularServices_editado");
+    }
+
+    public function getServicesWithoutProfessional()
+    {
+        $services = PatientService::select('sas.AssignService.*')
+            ->join('sas.AssignServiceDetails', 'sas.AssignServiceDetails.AssignServiceDetailId', '=', 'sas.AssignService.AssignServiceId')
+            ->where('sas.AssignService.StateId', '<>', 3)
+            ->with(['patient', 'service'])
+            ->get();
+        return $services;
+    }
+
+    public function getProfessionalsCopayment()
+    {
+        $data = ServiceDetail::select(\DB::raw('sas.AssignServiceDetails.ProfessionalId, sum(sas.AssignServiceDetails.ReceivedAmount) as ReceivedAmount'))
+            ->join('sas.AssignService', function ($join) {
+                $join->on('sas.AssignService.AssignServiceId', '=', 'sas.AssignServiceDetails.AssignServiceId')
+                    ->where('CopaymentStatus', 0);
+            })
+            ->where('PaymentType', 1)
+            ->where('sas.AssignServiceDetails.ProfessionalId', '<>',-1)
+            ->where('ReceivedAmount', '>', '200000')
+            ->groupBy('sas.AssignServiceDetails.ProfessionalId')
+            ->get();
+        $data->load('professional.user');
+        return $data;
     }
 }

@@ -26,6 +26,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('unittimes', 'UnitTimeController@index');
     Route::get('genders', 'GenderController@index');
     Route::get('patienttypes', 'PatientTypeController@index');
+    Route::get('professionals/copayment', 'PatientServiceController@getProfessionalsCopayment');
     Route::resource('professionals', 'ProfessionalController');
     Route::resource('coordinators', 'CoordinatorController');
     Route::resource('entities', 'EntityController');
@@ -62,4 +63,8 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('copayments/pdf/{id}', 'CopaymentController@pdf')->name('copayment.pdf');
     Route::get('copayments/excel/{id}', 'CopaymentController@pdf')->name('copayment.excel');
     Route::get('professionalrates', 'ProfesionalRateController@index');
+    Route::get('getchartdata/{service}', 'PatientServiceController@getChartData');
+    Route::get('irregularservices', 'PatientServiceController@getIrregularServices');
+    Route::get('professionals/-1/services', 'PatientServiceController@getServicesWithoutProfessional');
+    Route::get('reports/consolidado', 'ReportController@getConsolidadoReport');
 });
