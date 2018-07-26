@@ -10,7 +10,7 @@ class Professional extends Model
     protected $primaryKey = 'ProfessionalId';
     protected $fillable = ["Document", "BirthDate", "Neighborhood",  "Address", "Telephone1", "Telephone2",
         "AccountNumber", "CodeBank", "GenderId", "SpecialtyId", "DocumentTypeId","DateAdmission",
-        "Availability", "FamilyName", "FamilyRelationship", "FamilyPhone", "Coverage", "AccountTypeId"];
+        "Availability", "FamilyName", "FamilyRelationship", "FamilyPhone", "Coverage", "AccountTypeId", 'ContractTypeId'];
 
     public $timestamps = false;
     

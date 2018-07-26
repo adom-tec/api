@@ -229,9 +229,9 @@ class CopaymentController extends Controller
                 'PatientDocumentType' => $service->patient->documentType->Abbreviation,
                 'KITMNB' => $kitMNB ? 'SI' : 'NO',
                 'QuantityKITMNB' => (int) $kitMNB,
-                'TotalCopaymentDelivered' => (float) $service->TotalCopaymentReceived,
-                'SubTotal' => (float) $subTotal,
                 'OtherValuesReceived' => (float) $service->OtherValuesReceived,
+                'TotalCopaymentDelivered' => (float) $service->TotalCopaymentReceived + $service->OtherValuesReceived,
+                'SubTotal' => (float) $subTotal,
                 'professional_rate_id' => $service->professional_rate_id
             ];
             
@@ -264,6 +264,7 @@ class CopaymentController extends Controller
         }
         $totalCopaymentReceived = array_sum(array_column($services, 'TotalCopaymentReceived'));
         $subTotal = array_sum(array_column($services, 'SubTotal'));
+        $totalOtherValues = array_sum(array_column($services, 'OtherValuesReceived'));
         $data = [
             'collectionAccount' => $collectionAccount,
             'services' => $services,
@@ -274,7 +275,8 @@ class CopaymentController extends Controller
             'totalCopaymentReceived' => $totalCopaymentReceived,
             'subTotal' => $subTotal,
             'professionalTakenAmount' => $professionalTakenAmount,
-            'totalCopaymentDelivered' => $totalCopaymentReceived - $professionalTakenAmount,
+            'totalOtherValues' => $totalOtherValues,
+            'totalCopaymentDelivered' => ($totalCopaymentReceived + $totalOtherValues) - $professionalTakenAmount,
             'total' => $subTotal - $professionalTakenAmount
         ];
 

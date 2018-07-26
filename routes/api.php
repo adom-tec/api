@@ -73,6 +73,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::get('reports/nomina', 'ReportController@getNominaReport');
     Route::get('rips/services', 'RipsController@getServices');
     Route::post('rips/services', 'RipsController@generateRips');
+    Route::get('contracttypes', 'ProfessionalController@getContractTypes');
 });
 
 Route::post('resetpassword', 'UserController@sendEmailToResetPassword');

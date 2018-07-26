@@ -55,6 +55,8 @@ class PatientServiceController extends Controller
                         ->where('StateId', '>', 1)
                         ->count();
                     $professionalServices[$i]['countMadeVisits'] = $countMadeVisits;
+                    $professionalServices[$i]['realFinalDate'] = ServiceDetail::where('AssignServiceId', $professionalServices[$i]['AssignServiceId'])
+                        ->max('DateVisit');
                 } else {
                     unset($professionalServices[$i]);
                 }

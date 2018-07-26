@@ -112,6 +112,7 @@
                     <th>VALE/PIN</th>
                     <th>KIT MNB</th>
                     <th>CUANTOS KIT UTILIZO</th>
+                    <th>TOTAL OTROS VALORES RECIBIDOS</th>
                     <th>VALORA ENTREGAR</th>
                     <th>SUBTOTAL</th>
                 </tr>
@@ -124,44 +125,50 @@
                     <td>{{ $service['EntityName'] }}</td>
                     <td>{{ $service['AuthorizationNumber'] }}</td>
                     <td>{{ $service['ServiceName'] }}</td>
-                    <td>{{ $service['PaymentProfessional'] }}</td>
+                    <td>{{ number_format($service['PaymentProfessional'], 2, ',', '.') }}</td>
                     <td>{{ $service['Quantity'] }}</td>
-                    <td>{{ $service['CoPaymentAmount'] }}</td>
+                    <td>{{ number_format($service['CoPaymentAmount'], 2, ',', '.') }}</td>
                     <td>{{ $service['CoPaymentFrecuency'] }}</td>
                     <td>{{ number_format($service['TotalCopaymentReceived'], 2, ',', '.') }}</td>
                     <td>{{ $service['Pin'] }}</td>
                     <td>{{ $service['KITMNB']}}</td>
                     <td>{{ $service['QuantityKITMNB'] }}</td>
-                    <td>{{ number_format($service['TotalCopaymentReceived'], 2, ',', '.') }}</td>
+                    <td>{{ number_format($service['OtherValuesReceived'], 2, ',', '.') }}</td>
+                    <td>{{ number_format($service['TotalCopaymentDelivered'], 2, ',', '.') }}</td>
                     <td>{{ number_format($service['SubTotal'], 2, ',', '.') }}</td>
                 </tr>
             @endforeach
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="9" class="no-border"></td>
+                    <td colspan="10" class="no-border"></td>
                     <th colspan="5">TOTAL COPAGOS RECIBIDOS
-                    </th><td>{{ $totalCopaymentReceived }}</td>
+                    </th><td>{{ number_format($totalCopaymentReceived, 2, ',', '.') }}</td>
                 </tr>
                 <tr>
-                    <td colspan="9" class="no-border"></td>
+                    <td colspan="10" class="no-border"></td>
+                    <th colspan="5">TOTAL COPAGOS RECIBIDOS
+                    </th><td>{{ number_format($totalOtherValues, 2, ',', '.') }}</td>
+                </tr>
+                <tr>
+                    <td colspan="10" class="no-border"></td>
                     <th colspan="5">SUBTOTAL A PAGAR AL PROFESIONAL
-                    </th><td>{{ $subTotal }}</td>
+                    </th><td>{{ number_format($subTotal, 2, ',', '.') }}</td>
                 </tr>
                 <tr>
-                    <td colspan="9" class="no-border"></td>
+                    <td colspan="10" class="no-border"></td>
                     <th colspan="5">MONTO CONSERVADO POR EL PROFESIONAL
-                    </th><td>{{ $professionalTakenAmount }}</td>
+                    </th><td>{{ number_format($professionalTakenAmount, 2, ',', '.') }}</td>
                 </tr>
                 <tr>
-                    <td colspan="9" class="no-border"></td>
-                    <th colspan="5">TOTAL COPAGOS ENTREGADOS
-                    </th><td>{{ $totalCopaymentDelivered }}</td>
+                    <td colspan="10" class="no-border"></td>
+                    <th colspan="5">TOTAL ENTREGADOS
+                    </th><td>{{ number_format($totalCopaymentDelivered, 2, ',', '.') }}</td>
                 </tr>
                 <tr>
-                    <td colspan="9" class="no-border"></td>
+                    <td colspan="10" class="no-border"></td>
                     <th colspan="5">TOTAL A PAGAR AL PROFESIONAL</th>
-                    <td> {{ $total }}</td>
+                    <td> {{ number_format($total, 2, ',', '.') }}</td>
                 </tr>
             </tfoot>
         </table>

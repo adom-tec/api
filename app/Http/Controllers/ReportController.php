@@ -488,6 +488,7 @@ class ReportController extends Controller
             'COPAGO(Registre el valor del copago realizado por el paciente.Si no aplica registrar 0)',
             'FRECUENCIA COPAGO(Selecciones la periodicidad con que el paciente realiza el copago)',
             'VALOR TOTAL RECAUDO COPAGOS(Registre el valor total recibido en copagos.Si no recibe copagos, registre 0)',
+            'OTROS VALORES RECIBIDOS',
             'VALE/PIN(Registrar 0 en caso de no recibir Vale o Pin)',
             'TIPO DE DOCUMENTO DEL PACIENTE',
             'KIT MNB',
@@ -497,7 +498,7 @@ class ReportController extends Controller
         ];
 
         $whiteRow = [];
-        for ($i = 0; $i <17; $i++ ) {
+        for ($i = 0; $i <18; $i++ ) {
             $whiteRow[] = ' ';
         }
 
@@ -531,6 +532,7 @@ class ReportController extends Controller
                 $datum['CoPaymentAmount'],
                 $datum['CoPaymentFrecuency'],
                 $datum['TotalCopaymentReceived'],
+                $datum['OtherValuesReceived'],
                 $datum['Pin'],
                 $datum['PatientDocumentType'],
                 $datum['KITMNB'],

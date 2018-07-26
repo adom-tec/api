@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\ContrarcType;
 use Illuminate\Http\Request;
 
 use App\Professional;
@@ -47,7 +48,8 @@ class ProfessionalController extends Controller
             'Telephone1' => 'required',
             'CodeBank' => 'required',
             'AccountTypeId' => 'required|exists:sqlsrv.cfg.AccountType,Id',
-            'AccountNumber' => 'required' 
+            'AccountNumber' => 'required',
+            'ContractTypeId' => 'required|exists:sqlsrv.cfg.ContractTypes,Id'
         ]);
         
         $dataProfessional = $request->except(['FirstName', 'SecondName', 'Surname', 'SecondSurname', 'Email']);
@@ -129,5 +131,9 @@ class ProfessionalController extends Controller
         return response()->json([
             'message' => 'Paciente borrado con exito'
         ], 200);
+    }
+    public function getContractTypes()
+    {
+        return ContrarcType::all();
     }
 }
