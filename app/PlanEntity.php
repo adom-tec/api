@@ -11,4 +11,9 @@ class PlanEntity extends Model
     protected $fillable = ['Name', 'State'];
 
     public $timestamps = false;
+
+    public function plansRates()
+    {
+        return $this->hasMany('App\PlanService', 'PlanEntityId');
+    }
 }

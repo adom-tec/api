@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use App\PatientService;
 use App\CollectionAccount;
 use Carbon\Carbon;
+use App\VisitCollectionAccount;
 
 class CopaymentController extends Controller
 {
@@ -82,6 +83,7 @@ class CopaymentController extends Controller
 
         \DB::beginTransaction();
         $serviceDetailsId = [];
+        $visitsId = [];
         foreach ($services as $service) {
             $details = $service->details->toArray();
             $copaymentReceived = array_sum(array_column($details, 'ReceivedAmount'));
@@ -100,11 +102,23 @@ class CopaymentController extends Controller
                 $service->CopaymentStatus = 1;
             }
             $service->save();
+            $visitsId = array_merge($visitsId, $detailsId);
         }
 
         $collectionAccount = new CollectionAccount();
         $collectionAccount->observation = $request->input('observation');
+        $collectionAccount->ProfessionalTakenAmount = $professionalTakenAmount;
         $collectionAccount->save();
+
+        $visitsCollectionAccount = [];
+        foreach ($visitsId as $id) {
+            $visitsCollectionAccount[] = [
+                'CollectionAccountId' => $collectionAccount->id,
+                'AssignServiceDetailId' => $id
+            ];
+        }
+
+        VisitCollectionAccount::insert($visitsCollectionAccount);
 
         try {
             $pdf = $this->pfd($professional, $initDate, $finalDate, $collectionAccount, $request->input('StateId'), $serviceDetailsId, $professionalTakenAmount);
@@ -121,18 +135,29 @@ class CopaymentController extends Controller
         return $pdf->stream();
     }
 
-    private function getServices($professionalId, $initDate, $finalDate, $copaymentStatus, $stateId, $services = [])
+    public function getServices($professionalId, $initDate, $finalDate, $copaymentStatus, $stateId, $services = [], $visitsId = [])
     {
-        $assignServices = PatientService::select('sas.AssignService.*', 'sas.AssignServiceDetails.professional_rate_id', 'sas.AssignServiceDetails.ReceivedAmount', 'sas.AssignServiceDetails.Pin', 'sas.AssignServiceDetails.OtherAmount')
-            ->join('sas.AssignServiceDetails', function ($join) use ($professionalId, $initDate, $finalDate, $copaymentStatus) {
+        $assignServices = PatientService::select('sas.AssignService.*', 'sas.AssignServiceDetails.professional_rate_id', 'sas.AssignServiceDetails.ReceivedAmount', 'sas.AssignServiceDetails.Pin', 'sas.AssignServiceDetails.OtherAmount');
+        if (!count($visitsId)) {
+            $assignServices = $assignServices->join('sas.AssignServiceDetails', function ($join) use ($professionalId, $initDate, $finalDate, $copaymentStatus) {
                 $join->on('sas.AssignServiceDetails.AssignServiceId', '=', 'sas.AssignService.AssignServiceId')
                     ->where('sas.AssignServiceDetails.ProfessionalId', $professionalId)
                     ->whereBetween('DateVisit', [$initDate, $finalDate])
                     ->where('sas.AssignServiceDetails.StateId', 2)
                     ->where('delivered', $copaymentStatus);
-            })
-            ->orderBy('sas.AssignService.AssignServiceId')
-            ->with(['patient.documentType', 'entity', 'service', 'coPaymentFrecuency']);
+                });
+        } else {
+            $assignServices = $assignServices->join('sas.AssignServiceDetails', function ($join) use ($visitsId) {
+                $join->on('sas.AssignServiceDetails.AssignServiceId', '=', 'sas.AssignService.AssignServiceId')
+                    ->where('sas.AssignServiceDetails.StateId', 2)
+                    ->where('delivered', 1)
+                    ->whereIn('sas.AssignServiceDetails.AssignServiceDetailId', $visitsId);
+                });
+        }
+
+        $assignServices = $assignServices->orderBy('sas.AssignService.AssignServiceId')
+            ->with(['patient.documentType', 'entity', 'service', 'coPaymentFrecuency', 'professional']);
+
         if ($stateId == 1 || $stateId == 2) {
             $assignServices->where('sas.AssignService.StateId', $stateId);
         } else {
@@ -164,6 +189,7 @@ class CopaymentController extends Controller
         }
 
         $data = [];
+        $i = 0;
         foreach ($assignServices as $service) {
             $kitMNB = ServiceSupply::where('AssignServiceId', $service->AssignServiceId)
                 ->where('SupplyId', 3)->sum('Quantity');
@@ -176,6 +202,15 @@ class CopaymentController extends Controller
                 $paymentProfessional = $service->service->particular_value;
             } elseif ($service->professional_rate_id == 4) {
                 $paymentProfessional = $service->service->holiday_value;
+            }
+            $professional = $service->professional;
+            $name = $professional->user->FirstName . ' ';
+            if ($professional->user->SecondName) {
+                $name .= $professional->user->SecondName . ' ';
+            }
+            $name .= $professional->user->Surname . ' ';
+            if ($professional->user->SecondSurname) {
+                $name .= $professional->user->SecondSurname;
             }
             $subTotal = $service->QuantityRealized * $paymentProfessional;
             $data[] = [
@@ -199,6 +234,14 @@ class CopaymentController extends Controller
                 'OtherValuesReceived' => (float) $service->OtherValuesReceived,
                 'professional_rate_id' => $service->professional_rate_id
             ];
+            
+            if (count($visitsId)) {
+                $data[$i]['ProfessionalDocument'] = $service->professional->Document;
+                $data[$i]['ProfessionalName'] = $name;
+                $data[$i]['ProfessionalId'] = $service->professional->ProfessionalId;
+            }
+
+            $i++;
         }
         return $data;
     }

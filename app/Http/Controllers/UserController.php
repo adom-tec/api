@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\User;
+use App\PasswordReset;
+use App\Mail\PasswordReset as PasswordResetMail;
+
+use Faker\Factory as Faker;
 
 class UserController extends Controller
 {
@@ -113,5 +117,82 @@ class UserController extends Controller
         else {
            return false;
         }
-     }
+    }
+
+    public function sendEmailToResetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        $user = User::where('Email', $request->input('email'))->first();
+
+        if ($user) {
+            PasswordReset::where('UserId', $user->UserId)->delete();
+            $passwordReset = new PasswordReset();
+            $passwordReset->UserId = $user->UserId;
+            $faker = Faker::create();
+            $passwordReset->Uuid = $faker->uuid;
+            $passwordReset->save();
+            $name = $user->FirstName . ' ';
+            if ($user->SecondName) {
+                $name .= $user->SecondName . ' ';
+            }
+            $name .= $user->Surname . ' ';
+            if ($user->SecondSurname) {
+                $name .= $user->SecondSurname;
+            }
+            $url = env('CLIENT_URL') . '/passwordreset/' . $passwordReset->Uuid;
+            \Mail::to($user->Email)->send(new PasswordResetMail($name, $url));
+        }
+
+
+        return response()->json([
+            'message' => 'Proceso realizado correctamente'
+        ], 200);
+    }
+
+    public function verifyUuid(Request $request)
+    {
+        $request->validate([
+            'uuid' => 'required'
+        ]);
+
+        $passwordReset = PasswordReset::where('Uuid', $request->input('uuid'))->first();
+
+        if ($passwordReset) {
+            return response()->json([
+                'message' => 'clave válida'
+            ], 200);
+        }
+
+        return response()->json([
+            'message' => 'clave no existe'
+        ], 404);
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'uuid' => 'required',
+            'password' => 'required',
+        ]);
+
+        
+
+        $passwordReset = PasswordReset::where('Uuid', $request->input('uuid'))->first();
+        if ($passwordReset) {
+            $user = User::findOrFail($passwordReset->UserId);
+            $user->password = bcrypt($request->input('password'));
+            $user->save();
+            $passwordReset->where('UserId', $user->UserId)->delete();
+            return response()->json([
+                'message' => 'Contraseña cambiada con éxito'
+            ], 200);
+        }
+
+        return response()->json([
+            'message' => 'Error, acción no válida'
+        ], 400);
+    }
 }

@@ -82,8 +82,9 @@ class ServiceDetailController extends Controller
         }
         
         $serviceId = \DB::select(\DB::raw($sql))[0]->AssignServiceId;
+
         $serviceDetail->professional_rate_id = $detail['professional_rate_id'] ? $detail['professional_rate_id'] : $serviceDetail->professional_rate_id;
-        if ($serviceDetail->StateId != 3) {
+        if ($detail['StateId'] != 3) {
             DetailCancelReason::where('AssignServiceDetailId', $serviceDetail->AssignServiceDetailId)
                 ->delete();
         }

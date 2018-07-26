@@ -227,10 +227,15 @@ class PatientServiceController extends Controller
 
     public function getServicesWithoutProfessional()
     {
-        $services = PatientService::select('sas.AssignService.*')
-            ->join('sas.AssignServiceDetails', 'sas.AssignServiceDetails.AssignServiceDetailId', '=', 'sas.AssignService.AssignServiceId')
+        
+        $services = PatientService::select(\DB::raw('DISTINCT(sas.AssignService.AssignServiceId), PatientId, ServiceId'))
+            ->join('sas.AssignServiceDetails', function ($join) {
+                $join->on('sas.AssignServiceDetails.AssignServiceId', '=', 'sas.AssignService.AssignServiceId')
+                    ->where('sas.AssignServiceDetails.ProfessionalId', '-1')
+                    ->where('sas.AssignServiceDetails.StateId', '<>', 3);
+            })
             ->where('sas.AssignService.StateId', '<>', 3)
-            ->with(['patient', 'service'])
+            ->with(['patient:PatientId,NameCompleted', 'service:ServiceId,Name'])
             ->get();
         return $services;
     }

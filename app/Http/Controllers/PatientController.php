@@ -14,7 +14,7 @@ class PatientController extends Controller
      */
     public function index()
     {
-        return Patient::limit(20)->with(['documentType', 'unitTime', 'gender', 'patientType'])->get();
+        return Patient::with(['documentType', 'unitTime', 'gender', 'patientType'])->get();
     }
 
     /**

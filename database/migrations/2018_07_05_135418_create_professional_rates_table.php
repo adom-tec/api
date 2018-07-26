@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use App\ProfesionalRate;
 
 class CreateProfessionalRatesTable extends Migration
 {
@@ -17,6 +18,23 @@ class CreateProfessionalRatesTable extends Migration
             $table->increments('id');
             $table->string('Name');
         });
+
+        $rates = [
+            [
+                'name' => 'ESTÁNDAR'
+            ],
+            [
+                'name' => 'TARIFA ESPECIAL'
+            ],
+            [
+                'name' => 'PARTICULAR'
+            ],
+            [
+                'name' => 'DOMINICAL , FESTIVO'
+            ]
+        ];
+
+        ProfesionalRate::insert($rates);
     }
 
     /**

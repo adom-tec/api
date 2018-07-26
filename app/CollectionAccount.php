@@ -9,5 +9,6 @@ class CollectionAccount extends Model
     protected $table = 'sas.CollectionAccounts';
     protected $primaryKey = 'id';
     
-    public $timestamps = false;
+    const CREATED_AT = 'RecordDate';
+    const UPDATED_AT = null;
 }

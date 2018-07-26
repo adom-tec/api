@@ -29,6 +29,11 @@ class PatientService extends Model
         return $this->belongsToMany('App\Supply', 'sas.AssignServiceSupply', 'AssignServiceId', 'AssignServiceId');
     }
 
+    public function serviceSupplies()
+    {
+        return $this->hasMany('App\ServiceSupply', 'AssignServiceId');
+    }
+
     public function service()
     {
         return $this->belongsTo('App\Service', 'ServiceId');
@@ -60,7 +65,7 @@ class PatientService extends Model
 
     public function planService()
     {
-        return $this->belongsTo('App\PlanService', 'PlanEntityId');
+        return $this->belongsTo('App\PlanEntity', 'PlanEntityId');
     }
 
     public function getCountMadeVisitsAttribute()
