@@ -55,8 +55,6 @@ class PatientServiceController extends Controller
                         ->where('StateId', '>', 1)
                         ->count();
                     $professionalServices[$i]['countMadeVisits'] = $countMadeVisits;
-                    $professionalServices[$i]['realFinalDate'] = ServiceDetail::where('AssignServiceId', $professionalServices[$i]['AssignServiceId'])
-                        ->max('DateVisit');
                 } else {
                     unset($professionalServices[$i]);
                 }
@@ -87,7 +85,7 @@ class PatientServiceController extends Controller
             'InitialDate' => 'required',
             'FinalDate' => 'required',
             'ServiceFrecuencyId' => 'required|exists:sqlsrv.cfg.ServiceFrecuency,ServiceFrecuencyId',
-            'ProfessionalId' => 'required|exists:sqlsrv.cfg.Professionals,ProfessionalId',
+            'ProfessionalId' => 'required',
             'CoPaymentAmount' => 'required',
             'CoPaymentFrecuencyId' => 'required|exists:sqlsrv.cfg.CoPaymentFrecuency,CoPaymentFrecuencyId',
             'Consultation' => 'required|numeric',
@@ -109,16 +107,19 @@ class PatientServiceController extends Controller
         $patientService = \DB::select(\DB::raw($sql))[0]->AssignServiceId;
         $patientService = PatientService::with(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService'])
             ->findOrFail($patientService);
-        $professional = Professional::findOrFail($ProfessionalId);
-        $name = $professional->user->FirstName . ' ';
-        if ($professional->user->SecondName) {
-            $name .= $professional->user->SecondName . ' ';
+        if ($ProfessionalId != -1) {
+            $professional = Professional::findOrFail($ProfessionalId);
+            $name = $professional->user->FirstName . ' ';
+            if ($professional->user->SecondName) {
+                $name .= $professional->user->SecondName . ' ';
+            }
+            $name .= $professional->user->Surname . ' ';
+            if ($professional->user->SecondSurname) {
+                $name .= $professional->user->SecondSurname;
+            }
+            \Mail::to($professional->user->Email)->send(new ServiceAssigned($name, $patientService));
         }
-        $name .= $professional->user->Surname . ' ';
-        if ($professional->user->SecondSurname) {
-            $name .= $professional->user->SecondSurname;
-        }
-        \Mail::to($professional->user->Email)->send(new ServiceAssigned($name, $patientService));
+        
         return response()->json($patientService, 201);
     }
 

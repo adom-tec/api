@@ -147,7 +147,7 @@
                 </tr>
                 <tr>
                     <td colspan="10" class="no-border"></td>
-                    <th colspan="5">TOTAL COPAGOS RECIBIDOS
+                    <th colspan="5">TOTAL OTROS VALORES RECIBIDOS
                     </th><td>{{ number_format($totalOtherValues, 2, ',', '.') }}</td>
                 </tr>
                 <tr>

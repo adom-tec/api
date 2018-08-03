@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use App\User;
 use App\PasswordReset;
 use App\Mail\PasswordReset as PasswordResetMail;
+use App\Mail\CreateUserMail;
+use App\Professional;
+use App\ServiceDetail;
 
 use Faker\Factory as Faker;
 
@@ -43,6 +46,17 @@ class UserController extends Controller
         $user->Password = bcrypt($request->input('Password'));
         $user->save();
 
+        $name = $user->FirstName . ' ';
+        if ($user->SecondName) {
+            $name .= $user->SecondName . ' ';
+        }
+        $name .= $user->Surname . ' ';
+        if ($user->SecondSurname) {
+            $name .= $user->SecondSurname;
+        }
+        
+        \Mail::to($user->Email)->send(new CreateUserMail($name, $user->Email, $request->input('Password'), env('CLIENT_URL')));
+
         return response()->json($user, 201);
     }
 
@@ -76,6 +90,8 @@ class UserController extends Controller
             'State' => 'boolean',
         ]);
 
+        $stateUser = $user->State; 
+
         $user->fill($request->except('Password'));
 
         if ($request->input('Password')) {
@@ -85,6 +101,18 @@ class UserController extends Controller
                 return response()->json([
                     'message' => 'Solo puede cambiarle la contraseña a su propio usuario'
                 ], 403);
+            }
+        }
+
+        $professional = Professional::where('UserId', $user->UserId)->first();
+        if ($request->input('State') == 0 && $stateUser == 1 && $professional) {
+            $activeServices = ServiceDetail::where('ProfessionalId', $professional->ProfessionalId)
+                ->where('StateId', 1)
+                ->first();
+            if ($activeServices) {
+                return response()->json([
+                    'message' => 'Error, El profesional tiene servicios activos'
+                ], 400);
             }
         }
 
