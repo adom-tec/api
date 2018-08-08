@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\ServiceDetail;
 use Illuminate\Http\Request;
 use App\PatientService;
 use App\GeneratedRip;
@@ -14,18 +15,23 @@ class RipsController extends Controller
     public function getServices(Request $request)
     {
         $serviceType = $request->input('ServiceType');
-        return PatientService::select('AssignServiceId','PatientId', 'sas.AssignService.ServiceId', 'EntityId', 'PlanEntityId', 'AuthorizationNumber', 'InitialDate', 'FinalDate', 'InvoiceNumber')
+        $services = PatientService::select('AssignServiceId','PatientId', 'sas.AssignService.ServiceId', 'EntityId', 'PlanEntityId', 'AuthorizationNumber', 'InitialDate', 'FinalDate', 'InvoiceNumber')
             ->where('InitialDate', '>=', $request->input('InitDate'))
             ->where('FinalDate', '<=', $request->input('FinalDate'))
             ->where('EntityId', $request->input('Entity'))
-            ->where('PlanEntityId', $request->input('PlanEntity'))
             ->join('cfg.Services', function ($join) use ($serviceType) {
                 $join->on('cfg.Services.ServiceId', '=', 'sas.AssignService.ServiceId')
                     ->where('cfg.Services.ServiceTypeId', $serviceType);
             })
             ->where('StateId', 2)
-            ->with(['patient:PatientId,NameCompleted,Document', 'service:ServiceId,Name', 'entity:EntityId,Name', 'planService:PlanEntityId,Name'])
-            ->get();
+            ->where('CopaymentStatus', 1)
+            ->with(['patient:PatientId,NameCompleted,Document', 'service:ServiceId,Name', 'entity:EntityId,Name', 'planService:PlanEntityId,Name']);
+
+        if ($request->input('PlanEntity')) {
+            $services->where('PlanEntityId', $request->input('PlanEntity'));
+        }
+
+        return $services->get();
     } 
 
     public function generateRips(Request $request)
@@ -42,7 +48,7 @@ class RipsController extends Controller
         $generatedRip->InvoiceNumber = $request->input('InvoiceNumber');
         $generatedRip->save();
         $services = PatientService::whereIn('AssignServiceId', $request->input('services'))
-            ->with(['patient', 'service', 'entity', 'details', 'supplies'])
+            ->with(['patient', 'service', 'entity', 'supplies'])
             ->get();
         $adomInfo = AdomInfo::all()[0];
 
@@ -67,7 +73,7 @@ class RipsController extends Controller
 
         $apData = $this->getApData($servicesAp, $adomInfo, $InvoiceNumber, $finalDate);
         $atData = $this->getAtData($services, $adomInfo, $InvoiceNumber);
-        $afData = $this->getAfData($services, $adomInfo, $InvoiceNumber, $InvoiceDate, $CopaymentAmount, $NetWorth, $InitDate, $FinalDate);
+        $afData = $this->getAfData($services, $adomInfo, $InvoiceNumber, $InvoiceDate, $CopaymentAmount, $NetWorth);
         $ctData = $this->getCtData($adomInfo, $generatedRip->GeneratedRipsId, count($usData), count($acData), count($apData), count($atData), count($afData));
         \Storage::disk('rips')->makeDirectory($generatedRip->GeneratedRipsId);
         $directory = storage_path('app/public/rips') . '/' . $generatedRip->GeneratedRipsId . '/';
@@ -142,8 +148,13 @@ class RipsController extends Controller
         $data = [];
 
         foreach ($services as $service) {
-            foreach ($service->details as $detail) {
+            $details = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)
+                ->where('StateId', 2)
+                ->where('delivered', 1)
+                ->get();
+            foreach ($details as $detail) {
                 $date = Carbon::createFromFormat('Y-m-d', $detail->DateVisit)->format('d/m/Y');
+
                 $net = $service->Rate - $detail->ReceivedAmount;
                 $data[] = [
                     $invoiceNumber,
@@ -224,7 +235,7 @@ class RipsController extends Controller
         return $data;
     }
 
-    private function getAfData($services, $adomInfo, $invoiceNumber, $invoiceDate, $copayment, $netValue, $initDate, $finalDate)
+    private function getAfData($services, $adomInfo, $invoiceNumber, $invoiceDate, $copayment, $netValue)
     {
         $data = [];
         $identifiers = [];
@@ -238,10 +249,23 @@ class RipsController extends Controller
             }
         }
 
-        $initDate = Carbon::createFromFormat('Y-m-d', $initDate)->format('d/m/Y');
-        $finalDate = Carbon::createFromFormat('Y-m-d', $finalDate)->format('d/m/Y');
+        $initDate = '';
+        $finalDate = '';
 
         foreach ($services as $service) {
+            $initDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)
+                ->where('StateId', 2)
+                ->where('delivered', 1)
+                ->min('DateVisit');
+
+            $finalDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)
+                ->where('StateId', 2)
+                ->where('delivered', 1)
+                ->max('DateVisit');
+
+            $initDate = Carbon::createFromFormat('Y-m-d', $initDate)->format('d/m/Y');
+            $finalDate = Carbon::createFromFormat('Y-m-d', $finalDate)->format('d/m/Y');
+
             $data[] = [
                 $adomInfo->ProviderCode,
                 $adomInfo->BusinessName,
@@ -257,7 +281,7 @@ class RipsController extends Controller
                 '',
                 '',
                 $copayment,
-                0,
+                '0',
                 $service->OtherValuesReceived,
                 $netValue
             ]; 
@@ -305,12 +329,79 @@ class RipsController extends Controller
 
     private function createCSVFile($fileName, $data)
     {
-        $fp = fopen($fileName, 'w');
+        $fp = fopen($fileName, 'a');
 
+        $i = 0;
         foreach ($data as $datum) {
-            fputcsv($fp, $datum);
+            $content = implode(',', $this->cleanDatum($datum));
+            $content = $i > 0 ? "\r\n" . $content : $content;
+            fwrite($fp, $content);
+            $i++;
         }
 
         fclose($fp);
+    }
+
+    private function cleanDatum($row)
+    {
+        for ($i = 0; $i < count($row); $i++) {
+            $row[$i] = $this->clean($row[$i]);
+        }
+        return $row;
+    }
+
+    private function clean($string)
+    {
+        $string = trim($string);
+
+        $string = str_replace(
+            array('á', 'à', 'ä', 'â', 'ª', 'Á', 'À', 'Â', 'Ä'),
+            array('a', 'a', 'a', 'a', 'a', 'A', 'A', 'A', 'A'),
+            $string
+        );
+
+        $string = str_replace(
+            array('é', 'è', 'ë', 'ê', 'É', 'È', 'Ê', 'Ë'),
+            array('e', 'e', 'e', 'e', 'E', 'E', 'E', 'E'),
+            $string
+        );
+
+        $string = str_replace(
+            array('í', 'ì', 'ï', 'î', 'Í', 'Ì', 'Ï', 'Î'),
+            array('i', 'i', 'i', 'i', 'I', 'I', 'I', 'I'),
+            $string
+        );
+
+        $string = str_replace(
+            array('ó', 'ò', 'ö', 'ô', 'Ó', 'Ò', 'Ö', 'Ô'),
+            array('o', 'o', 'o', 'o', 'O', 'O', 'O', 'O'),
+            $string
+        );
+
+        $string = str_replace(
+            array('ú', 'ù', 'ü', 'û', 'Ú', 'Ù', 'Û', 'Ü'),
+            array('u', 'u', 'u', 'u', 'U', 'U', 'U', 'U'),
+            $string
+        );
+
+        $string = str_replace(
+            array('ñ', 'Ñ', 'ç', 'Ç'),
+            array('n', 'N', 'c', 'C',),
+            $string
+        );
+
+        $string = str_replace(
+            array("\\", "¨", "º", "-", "~",
+                "#", "@", "|", "!", "\"",
+                "·", "$", "%", "&",
+                "(", ")", "?", "'", "¡",
+                "¿", "[", "^", "<code>", "]",
+                "+", "}", "{", "¨", "´",
+                ">", "< ", ";", ",", ":",
+                "."),
+            '',
+            $string
+        );
+        return $string;
     }
 }

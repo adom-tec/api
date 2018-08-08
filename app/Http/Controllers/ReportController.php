@@ -412,7 +412,7 @@ class ReportController extends Controller
 
 
 
-        $sql .= " ORDER BY Asd.AssignServiceDetailId DESC";
+        $sql .= " ORDER BY Asd.AssignServiceDetailId";
 
         $data = json_decode(json_encode(\DB::select(\DB::raw($sql))), true);
 
