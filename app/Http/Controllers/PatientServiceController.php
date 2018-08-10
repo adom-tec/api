@@ -111,7 +111,7 @@ class PatientServiceController extends Controller
         $Validity = Carbon::createFromFormat('Y-m-d', $Validity)->format('Y-d-m');
         $InitialDate = Carbon::createFromFormat('Y-m-d', $InitialDate)->format('Y-d-m');
         $FinalDate = Carbon::createFromFormat('Y-m-d', $FinalDate)->format('Y-d-m');
-        $sql = "exec sas.CreateAssignServiceAndDetails_editado ${patient}, '${AuthorizationNumber}', '${Validity}', '${ApplicantName}', ${ServiceId}, ${Quantity}, '${InitialDate}', '${FinalDate}', ${ServiceFrecuencyId}, ${ProfessionalId}, ${CoPaymentAmount}, ${CoPaymentFrecuencyId}, ${Consultation}, ${External}, 1, '${Observation}', '${ContractNumber}', '${Cie10}', '${DescriptionCie10}', ${PlanEntityId}, ${EntityId}, ${AssignedBy}";
+        $sql = "exec sas.CreateAssignServiceAndDetails ${patient}, '${AuthorizationNumber}', '${Validity}', '${ApplicantName}', ${ServiceId}, ${Quantity}, '${InitialDate}', '${FinalDate}', ${ServiceFrecuencyId}, ${ProfessionalId}, ${CoPaymentAmount}, ${CoPaymentFrecuencyId}, ${Consultation}, ${External}, 1, '${Observation}', '${ContractNumber}', '${Cie10}', '${DescriptionCie10}', ${PlanEntityId}, ${EntityId}, ${AssignedBy}";
         $patientService = \DB::select(\DB::raw($sql))[0]->AssignServiceId;
         $patientService = PatientService::with(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService'])
             ->findOrFail($patientService);
@@ -141,7 +141,7 @@ class PatientServiceController extends Controller
         $quantity = $request->input('Quantity');
         $serviceFrecuencyId = $request->input('ServiceFrecuencyId');
         $initialDate = $request->input('InitialDate');
-        $sql = "exec sas.CalculateFinalDateAssignService_editado $quantity,$serviceFrecuencyId,'$initialDate'";
+        $sql = "exec sas.CalculateFinalDateAssignService $quantity,$serviceFrecuencyId,'$initialDate'";
         $finalDate = \DB::select(\DB::raw($sql))[0]->FinalDateAssignService;
         return response()->json([
             'date' => Carbon::createFromFormat('d-m-Y', $finalDate)->format('Y-m-d')
@@ -233,7 +233,7 @@ class PatientServiceController extends Controller
 
     public function getIrregularServices()
     {
-        return \DB::select("exec sas.GetIrregularServices_editado");
+        return \DB::select("exec sas.GetIrregularServices");
     }
 
     public function getServicesWithoutProfessional()
