@@ -13,6 +13,14 @@ use App\VisitCollectionAccount;
 
 class CopaymentController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/CoPayment/Get')->only('index');
+        $this->middleware('verify.action:/CoPayment/Create')->only('store');
+        $this->middleware('verify.action:/CoPayment/Edit')->only('update');
+    }
+
     public function index(Request $request) {
         $request->validate([
             'ProfessionalId' => 'required|exists:sqlsrv.cfg.Professionals,ProfessionalId',
@@ -215,6 +223,7 @@ class CopaymentController extends Controller
             $subTotal = $service->QuantityRealized * $paymentProfessional;
             $data[] = [
                 'AssignServiceId' => $service->AssignServiceId,
+                'PatientDocumentType' => $service->patient->documentType->Abbreviation,
                 'PatientDocument' => $service->patient->Document,
                 'PatientName' => $service->patient->NameCompleted,
                 'EntityName' => $service->entity->BusinessName,
@@ -226,7 +235,6 @@ class CopaymentController extends Controller
                 'CoPaymentFrecuency' => $service->CoPaymentFrecuency->Name,
                 'TotalCopaymentReceived' => (float) $service->TotalCopaymentReceived,
                 'Pin' => $pin,
-                'PatientDocumentType' => $service->patient->documentType->Abbreviation,
                 'KITMNB' => $kitMNB ? 'SI' : 'NO',
                 'QuantityKITMNB' => (int) $kitMNB,
                 'OtherValuesReceived' => (float) $service->OtherValuesReceived,

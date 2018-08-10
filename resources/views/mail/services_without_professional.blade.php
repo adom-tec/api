@@ -1,0 +1,1 @@
+<p>Hola Patricia, a la fecha {{ $date }}, tenemos {{ $countServices }} Servicios sin profesional asignado.</p>

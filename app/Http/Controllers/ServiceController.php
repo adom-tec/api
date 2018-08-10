@@ -7,6 +7,14 @@ use App\Service;
 
 class ServiceController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/Service/Get')->only('index');
+        $this->middleware('verify.action:/Service/Edit')->only('update');
+        $this->middleware('verify.action:/Service/Create')->only('store');
+    }
+
     public function index()
     {
         return Service::with(['classification', 'serviceType'])->get();

@@ -7,6 +7,12 @@ use App\AdomInfo;
 
 class LockServiceController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/LockServices/Edit')->only('update');
+    }
+
     public function index()
     {
         $date = AdomInfo::where('ProviderCode', '110011114201')->first()->ServicesLockDate;

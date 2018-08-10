@@ -13,6 +13,13 @@ class UserRoleController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/UserRoles/Get')->only('index');
+        $this->middleware('verify.action:/UserRoles/Edit')->only('store');
+    }
+
     public function index($user)
     {
         $user = User::findOrFail($user);

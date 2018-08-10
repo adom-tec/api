@@ -12,6 +12,13 @@ use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('verify.action:/SpecialReport/Get')->only(['getConsolidadoReport', 'getDetalleReport']);
+        $this->middleware('verify.action:/PaymentReport/Create')->only('getPaymentReport');
+        $this->middleware('verify.action:/CopaymentReport/Create')->only(['getCopaymentReport', 'getNominaReport']);
+    }
+
     public function getConsolidadoReport(Request $request)
     {
         $sql = "SELECT	Ags.AssignServiceId
@@ -182,7 +189,7 @@ class ReportController extends Controller
         $excel = new ExcelBuilder($header, $data);
         $excel->build();
 
-        return response($excel->get())->header('Access-Control-Allow-Origin','http://192.168.0.13:4200');
+        return response($excel->get())->header('Access-Control-Allow-Origin','*');
     }
 
     public function getDetalleReport(Request $request)
@@ -480,22 +487,23 @@ class ReportController extends Controller
             }
         }
         $header = [
-            'N° DOCUMENTO DE IDENTIDAD',
+            'NÚMERO  DE IDENTIFICACIÓN DEL PROFESIONAL',
             'NOMBRE PROFESIONAL',
             'N° DOCUMENTO  DEL  PACIENTE',
             'NOMBRE COMPLETO DEL PACIENTE',
             'ENTIDAD',
-            'AUTORIZACIÓN (Registre la autorización. Para particulares y Javesalud registre 0)',
+            'AUTORIZACIÓN',
             'TIPO DE TERAPIA',
             'VALOR A PAGAR AL PROFESIONAL POR TERAPIA',
             'CANTIDAD DE TERAPIAS REALIZADAS',
-            'COPAGO(Registre el valor del copago realizado por el paciente.Si no aplica registrar 0)',
-            'FRECUENCIA COPAGO(Selecciones la periodicidad con que el paciente realiza el copago)',
-            'VALOR TOTAL RECAUDO COPAGOS(Registre el valor total recibido en copagos.Si no recibe copagos, registre 0)',
-            'VALE/PIN(Registrar 0 en caso de no recibir Vale o Pin)',
+            'COPAGO',
+            'FRECUENCIA COPAGO',
+            'VALOR TOTAL RECAUDO COPAGOS',
+            'VALE/PIN',
             'TIPO DE DOCUMENTO DEL PACIENTE',
             'KIT MNB',
             'CUANTOS KIT UTILIZO',
+            'OTROS VALORES RECIBIDOS',
             'VALOR A ENTREGAR',
             'SUBTOTAL'
         ];
@@ -510,17 +518,25 @@ class ReportController extends Controller
         $totalCopaymentReceived = array_sum(array_column($data, 'TotalCopaymentReceived'));
         $subTotal = array_sum(array_column($data, 'SubTotal'));
         $professionalTakenAmount = array_sum(array_column($colecctionAccounts, 'ProfessionalTakenAmount'));
+        $totalOthersValue = array_sum(array_column($data, 'OtherValuesReceived'));
         $subTotal = $subTotal - $professionalTakenAmount;
 
         $rowTotalCopayment = $whiteRow;
         $rowTotalCopayment[] = $totalCopaymentReceived;
         $rowTotalCopayment[16] = 'TOTAL COPAGOS';
+
         $rowprofessionalTakenAmount = $whiteRow;
         $rowprofessionalTakenAmount[] = $professionalTakenAmount;
         $rowprofessionalTakenAmount[16] = 'TOTAL MONTO CONSERVADO POR EL PROFESIONAL';
+
         $rowSubTotal = $whiteRow;
         $rowSubTotal[] = $subTotal;
         $rowSubTotal[16] = 'TOTAL A PAGAR AL PROFESIONAL';
+
+        $rowTotalOthersValue = $whiteRow;
+        $rowTotalOthersValue[] = $totalOthersValue;
+        $rowTotalOthersValue[16] = 'TOTAL OTROS VALORES RECIBIDOS';
+
         $data = array_map(function($datum) {
             return [
                 $datum['ProfessionalDocument'],
@@ -539,11 +555,13 @@ class ReportController extends Controller
                 $datum['PatientDocumentType'],
                 $datum['KITMNB'],
                 $datum['QuantityKITMNB'],
+                $datum['OtherValuesReceived'],
                 $datum['TotalCopaymentDelivered'],
                 $datum['SubTotal']
             ];
         }, $data);
         $data[] = $rowTotalCopayment;
+        $data[] = $rowTotalOthersValue;
         $data[] = $rowprofessionalTakenAmount;
         $data[] = $rowSubTotal;
         $excel = new ExcelBuilder($header, $data);

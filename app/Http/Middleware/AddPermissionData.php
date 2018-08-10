@@ -25,7 +25,7 @@ class AddPermissionData
                 $response->setContent($content);
 
             } else if ($response->getStatusCode() == 401 && array_key_exists('error', $content) && $content['error'] == 'invalid_credentials') {
-                $content['message'] = 'La contraseña que ingresó es incorrecta';
+                $content['message'] = 'Usuario o contraseña incorrectos';
                 $response->setContent($content);
             }
             return $response;

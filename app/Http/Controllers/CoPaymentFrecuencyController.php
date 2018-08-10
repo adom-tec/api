@@ -7,6 +7,13 @@ use Illuminate\Http\Request;
 
 class CoPaymentFrecuencyController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/CoPaymentFrecuency/Get')->only('index');
+        $this->middleware('verify.action:/CoPaymentFrecuency/Create')->only('store');
+        $this->middleware('verify.action:/CoPaymentFrecuency/Edit')->only('update');
+    }
     public function index()
     {
         return CoPaymentFrecuency::all();

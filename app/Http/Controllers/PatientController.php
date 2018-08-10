@@ -12,6 +12,14 @@ class PatientController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/Patient/Get')->only('index');
+        $this->middleware('verify.action:/Patient/Create')->only('store');
+        $this->middleware('verify.action:/Patient/Edit')->only('update');
+    }
+
     public function index()
     {
         return Patient::with(['documentType', 'unitTime', 'gender', 'patientType'])->get();

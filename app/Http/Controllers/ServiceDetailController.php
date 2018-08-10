@@ -10,6 +10,11 @@ use Carbon\Carbon;
 
 class ServiceDetailController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/AssignServiceDetail/Get')->only('index');
+    }
     public function index($service, $me = false, Request $request)
     {
         $query = ServiceDetail::where('AssignServiceId', $service);

@@ -36,6 +36,6 @@ class CreateUserMail extends Mailable
     public function build()
     {
         return $this->view('mail.create_user')
-            ->subject('Cuenta creada - ADOM');
+            ->subject('Bienvenido a ADOM Blue');
     }
 }

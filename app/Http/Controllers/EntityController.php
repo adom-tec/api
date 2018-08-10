@@ -12,6 +12,14 @@ class EntityController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/Entity/Get')->only('index');
+        $this->middleware('verify.action:/Entity/Create')->only('store');
+        $this->middleware('verify.action:/Entity/Edit')->only('update');
+    }
+
     public function index()
     {
         return Entity::all();

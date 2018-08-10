@@ -13,6 +13,14 @@ use App\DetailAnswer;
 
 class PatientServiceController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/AssignService/Get')->only('index');
+        $this->middleware('verify.action:/AssignService/Create')->only('store');
+        $this->middleware('verify.action:/AssignService/Edit')->only('update');
+    }
+
     /**
      * Display a listing of the resource.
      *

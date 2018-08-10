@@ -7,6 +7,13 @@ use Illuminate\Http\Request;
 
 class ServiceFrecuencyController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('verify.action:/ServiceFrecuency/Get')->only('index');
+        $this->middleware('verify.action:/ServiceFrecuency/Create')->only('store');
+        $this->middleware('verify.action:/ServiceFrecuency/Edit')->only('update');
+    }
+
     public function index()
     {
         return ServiceFrecuency::all();
