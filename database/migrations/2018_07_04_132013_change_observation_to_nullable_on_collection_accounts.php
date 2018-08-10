@@ -13,9 +13,10 @@ class ChangeObservationToNullableOnCollectionAccounts extends Migration
      */
     public function up()
     {
-        Schema::table('sas.CollectionAccounts', function (Blueprint $table) {
+	\DB::statement("ALTER TABLE sas.CollectionAccounts ALTER COLUMN observation text NULL");
+       /** Schema::table('sas.CollectionAccounts', function (Blueprint $table) {
             $table->text('observation')->nullable()->change();
-        });
+        });**/
     }
 
     /**

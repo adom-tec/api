@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
-use App\ContrarcType;
+use App\ContractType;
 
 class AddContractTypes extends Migration
 {
@@ -19,7 +19,7 @@ class AddContractTypes extends Migration
             $table->string('Name');
         });
 
-        ContrarcType::insert([
+        ContractType::insert([
             [
                 'Name' => 'PRESTACIÓN DE SERVICIOS'
             ],
