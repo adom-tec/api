@@ -12,6 +12,13 @@ use Carbon\Carbon;
 
 class RipsController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/Rips/Get')->only('getServices');
+        $this->middleware('verify.action:/Rips/Create')->only('generateRips');
+    }
+
     public function getServices(Request $request)
     {
         $serviceType = $request->input('ServiceType');

@@ -9,6 +9,13 @@ use App\ActionResource;
 
 class ActionResourceController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/RoleActionsResources/Get')->only(['getByModule', 'getByRole']);
+        $this->middleware('verify.action:/RoleActionsResources/Edit')->only('store');
+    }
+
     public function getByModule($module)
     {
         return ActionResource::join('sec.Resources', function ($join) use ($module) {

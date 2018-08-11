@@ -13,6 +13,14 @@ class CoordinatorController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/Coordinator/Get')->only('index');
+        $this->middleware('verify.action:/Coordinator/Create')->only('store');
+        $this->middleware('verify.action:/Coordinator/Edit')->only('update');
+    }
+
     public function index()
     {
         return Coordinator::with(['documentType', 'gender', 'user'])->get();

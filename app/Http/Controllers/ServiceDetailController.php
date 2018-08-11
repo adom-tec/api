@@ -10,6 +10,11 @@ use Carbon\Carbon;
 
 class ServiceDetailController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/AssignServiceDetail/Get')->only('index');
+    }
     public function index($service, $me = false, Request $request)
     {
         $query = ServiceDetail::where('AssignServiceId', $service);
@@ -76,9 +81,9 @@ class ServiceDetailController extends Controller
         $otherAmount = $otherAmount ? $otherAmount : 0;
 
         if (!is_null($date)) {
-            $sql = "exec sas.UpdateAssignServiceDetails_editado $assignServiceId, $assignServiceDetailId, $state, $professionalId, '$date', $paymentType, $receivedAmount, $otherAmount, '$observation', '$pin', $verified, $verifiedBy";
+            $sql = "exec sas.UpdateAssignServiceDetails $assignServiceId, $assignServiceDetailId, $state, $professionalId, '$date', $paymentType, $receivedAmount, $otherAmount, '$observation', '$pin', $verified, $verifiedBy";
         } else {
-            $sql = "exec sas.UpdateAssignServiceDetails_editado $assignServiceId, $assignServiceDetailId, $state, $professionalId, null, $paymentType, $receivedAmount, $otherAmount, '$observation', '$pin', $verified, $verifiedBy";
+            $sql = "exec sas.UpdateAssignServiceDetails $assignServiceId, $assignServiceDetailId, $state, $professionalId, null, $paymentType, $receivedAmount, $otherAmount, '$observation', '$pin', $verified, $verifiedBy";
         }
         
         $serviceId = \DB::select(\DB::raw($sql))[0]->AssignServiceId;

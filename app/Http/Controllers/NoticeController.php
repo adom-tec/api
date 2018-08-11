@@ -7,6 +7,14 @@ use App\Notice;
 
 class NoticeController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/Notices/Get')->only('index');
+        $this->middleware('verify.action:/Notices/Create')->only('store');
+        $this->middleware('verify.action:/Notices/Edit')->only('update');
+    }
+
     /**
      * Display a listing of the resource.
      *

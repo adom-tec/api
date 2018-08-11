@@ -20,6 +20,13 @@ class UserController extends Controller
      * @return \Illuminate\Http\Response
      */
 
+    public function __construct()
+    {
+        $this->middleware('verify.action:/Users/Get')->only('index');
+        $this->middleware('verify.action:/Users/Create')->only('store');
+        $this->middleware('verify.action:/Users/Edit')->only('update');
+    }
+
 
     public function index(Request $request)
     {

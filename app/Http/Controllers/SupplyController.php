@@ -7,6 +7,14 @@ use App\Supply;
 
 class SupplyController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('verify.action:/Supply/Get')->only('index');
+        $this->middleware('verify.action:/Supply/Create')->only('store');
+        $this->middleware('verify.action:/Supply/Edit')->only('update');
+    }
+
     public function index()
     {
         return Supply::all();

@@ -14,6 +14,9 @@ class ProfessionalController extends Controller
     public function __construct()
     {
         $this->middleware('get.columns.to.return')->only('index');
+        $this->middleware('verify.action:/Professional/Get')->only('index');
+        $this->middleware('verify.action:/Professional/Create')->only('store');
+        $this->middleware('verify.action:/Professional/Edit')->only('update');
     }
     /**
      * Display a listing of the resource.

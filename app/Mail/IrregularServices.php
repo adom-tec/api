@@ -7,22 +7,21 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
-class PasswordReset extends Mailable
+class IrregularServices extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $userName;
-    public $url;
-
+    public $date;
+    public $countServices;
     /**
      * Create a new message instance.
      *
      * @return void
      */
-    public function __construct($userName, $url)
+    public function __construct($date, $countServices)
     {
-        $this->userName = $userName;
-        $this->url = $url;
+        $this->date = $date;
+        $this->countServices = $countServices;
     }
 
     /**
@@ -32,7 +31,7 @@ class PasswordReset extends Mailable
      */
     public function build()
     {
-        return $this->view('mail.password_reset')
-            ->subject('Recuperación Contraseña ADOM Blue');
+        return $this->view('mail.irregular_services')
+            ->subject('Servicios Irregulares - ADOM');
     }
 }
