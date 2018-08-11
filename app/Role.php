@@ -10,4 +10,7 @@ class Role extends Model
     protected $primaryKey = 'RoleId';
     protected $fillable = ['Name', 'State'];
     public $timestamps = false;
+    protected $casts = [
+        'State' => 'string'
+    ];
 }

@@ -13,7 +13,7 @@ class ServiceDetailController extends Controller
 
     public function __construct()
     {
-        $this->middleware('verify.action:/AssignServiceDetail/Get')->only('index');
+        $this->middleware('verify.action:/AssignService/Edit')->only('index');
     }
     public function index($service, $me = false, Request $request)
     {

@@ -43,10 +43,8 @@ class SendEmails extends Command
     {
         $date = Carbon::now()->format('d/m/Y');
         $serviceController = new PatientServiceController();
-        //$countIrregularServices = count($serviceController->getIrregularServices());
-        //$countServicesWithoutProfessional = count($serviceController->getServicesWithoutProfessional());
-        $countServicesWithoutProfessional = 55;
-        $countIrregularServices = 31;
+        $countIrregularServices = count($serviceController->getIrregularServices());
+        $countServicesWithoutProfessional = count($serviceController->getServicesWithoutProfessional());
         \Mail::to(['jefeterapias@adom.com.co','operaciones4@adom.com.co'])->send(new IrregularServices($date, $countIrregularServices));
         \Mail::to('operaciones4@adom.com.co')->send(new ServicesWithoutProfessional($date, $countServicesWithoutProfessional));
     }

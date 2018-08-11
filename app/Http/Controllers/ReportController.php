@@ -14,8 +14,7 @@ class ReportController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('verify.action:/SpecialReport/Get')->only(['getConsolidadoReport', 'getDetalleReport']);
-        $this->middleware('verify.action:/PaymentReport/Create')->only('getPaymentReport');
+        $this->middleware('verify.action:/ReportSpecial/Get')->only(['getConsolidadoReport', 'getDetalleReport']);
         $this->middleware('verify.action:/CopaymentReport/Create')->only(['getCopaymentReport', 'getNominaReport']);
     }
 
@@ -462,7 +461,7 @@ class ReportController extends Controller
         $initDate = Carbon::createFromFormat('d-m-Y', $request->input('InitDate'))->format('Y-m-d');
         $finalDate = Carbon::createFromFormat('d-m-Y', $request->input('FinalDate'))->format('Y-m-d');
         $professional = $request->input('ProfessionalId');
-        $colecctionAccounts = CollectionAccount::select(\DB::raw('DISTINCT(sas.AssignServiceDetails.AssignServiceDetailId), sas.CollectionAccounts.*'))
+        $colecctionAccounts = CollectionAccount::select(\DB::raw('DISTINCT(sas.AssignServiceDetails.AssignServiceDetailId), sas.CollectionAccounts.id, ProfessionalTakenAmount'))
             ->join('sas.VisitCollectionAcount', 'sas.VisitCollectionAcount.CollectionAccountId', '=', 'sas.CollectionAccounts.id')
             ->join('sas.AssignServiceDetails', function($join) use ($professional){
                 $join = $join->on('sas.AssignServiceDetails.AssignServiceDetailId', '=', 'sas.VisitCollectionAcount.AssignServiceDetailId');
@@ -578,7 +577,7 @@ class ReportController extends Controller
         $initDate = Carbon::createFromFormat('d-m-Y', $request->input('InitDate'))->format('Y-m-d');
         $finalDate = Carbon::createFromFormat('d-m-Y', $request->input('FinalDate'))->format('Y-m-d');
         $professional = $request->input('ProfessionalId');
-        $colecctionAccounts = CollectionAccount::select(\DB::raw('DISTINCT(sas.AssignServiceDetails.AssignServiceDetailId), sas.AssignServiceDetails.ProfessionalId, sas.CollectionAccounts.*'))
+        $colecctionAccounts = CollectionAccount::select(\DB::raw('DISTINCT(sas.AssignServiceDetails.AssignServiceDetailId), sas.AssignServiceDetails.ProfessionalId, sas.CollectionAccounts.id, ProfessionalTakenAmount'))
             ->join('sas.VisitCollectionAcount', 'sas.VisitCollectionAcount.CollectionAccountId', '=', 'sas.CollectionAccounts.id')
             ->join('sas.AssignServiceDetails', function($join) use ($professional){
                 $join = $join->on('sas.AssignServiceDetails.AssignServiceDetailId', '=', 'sas.VisitCollectionAcount.AssignServiceDetailId');
