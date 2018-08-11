@@ -10,7 +10,9 @@ class ServiceDetail extends Model
     protected $primaryKey = 'AssignServiceDetailId';
 
     const UPDATED_AT = 'UpdateDate';
-
+    protected $casts = [
+       'Verified' => 'string'
+   ];
     public function professional()
     {
         return $this->belongsTo('App\Professional', 'ProfessionalId');

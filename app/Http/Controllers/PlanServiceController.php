@@ -11,9 +11,9 @@ class PlanServiceController extends Controller
 
     public function __construct()
     {
-        $this->middleware('verify.action:/PlanRate/Get')->only('index');
-        $this->middleware('verify.action:/PlanRate/Create')->only('store');
-        $this->middleware('verify.action:/PlanRate/Edit')->only('update');
+        $this->middleware('verify.action:/Entity/PlanRate')->only('index');
+        $this->middleware('verify.action:/Entity/PlanRate')->only('store');
+        $this->middleware('verify.action:/Entity/PlanRate')->only('update');
     }
 
     public function index($plan)

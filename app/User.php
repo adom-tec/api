@@ -27,6 +27,9 @@ class User extends Authenticatable
     protected $hidden = [
         'Password'
     ];
+    protected $casts = [
+        'State' => 'string'
+    ];
     public function findForPassport($username) {
         return $this->whereEmail($username)->first();
     }
@@ -40,7 +43,12 @@ class User extends Authenticatable
     {
         $orderModule = [];
         $orderResource = [];
-        $roles = UserRole::where('UserId', $this->UserId)->pluck('RoleId');
+        $roles = UserRole::where('UserId', $this->UserId)
+            ->join('sec.Roles', function($join) {
+                $join->on('sec.Roles.RoleId', '=', 'sec.UsersRoles.RoleId')
+                    ->where('sec.Roles.State', 1);
+            })
+            ->pluck('sec.UsersRoles.RoleId');
         $rolesActionsResources = RoleActionResource::whereIn('RoleId', $roles)->pluck('ActionResourceId');
         $actionsResources = ActionResource::whereIn('ActionResourceId', $rolesActionsResources)
             ->with(['resource.module' => function($query) {
@@ -83,7 +91,7 @@ class User extends Authenticatable
             for ($j = $i; count($actionsResources) > 0; $j++) {
                 if ($menu[$positionModule]['moduleId'] == $actionsResources[$j]['ModuleId']) {
                     $menu[$positionModule]['resources'][] = [
-                        'resourceId' => $actionsResources[$j]['ResourceId'],
+                        'resourceId' => (string) $actionsResources[$j]['ResourceId'],
                         'resourceName' => $actionsResources[$j]['ResourceName'],
                         'route' => $actionsResources[$j]['RouteFrontEnd'],
                         'actions' => [],
