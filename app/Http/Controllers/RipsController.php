@@ -150,7 +150,6 @@ class RipsController extends Controller
         foreach ($services as $service) {
             $details = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)
                 ->where('StateId', 2)
-                ->where('delivered', 1)
                 ->get();
             foreach ($details as $detail) {
                 $date = Carbon::createFromFormat('Y-m-d', $detail->DateVisit)->format('d/m/Y');
@@ -255,12 +254,10 @@ class RipsController extends Controller
         foreach ($services as $service) {
             $initDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)
                 ->where('StateId', 2)
-                ->where('delivered', 1)
                 ->min('DateVisit');
 
             $finalDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)
                 ->where('StateId', 2)
-                ->where('delivered', 1)
                 ->max('DateVisit');
 
             $initDate = Carbon::createFromFormat('Y-m-d', $initDate)->format('d/m/Y');
