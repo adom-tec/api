@@ -47,7 +47,14 @@ class PatientController extends Controller
             'PatientTypeId' => 'required|exists:sqlsrv.cfg.PatientType,Id',
             'AttendantEmail' => 'nullable|email'
         ]);
-
+	$patient = Patient::where('Document', $request->input('Document'))
+	    ->where('DocumentTypeId', $request->input('DocumentTypeId'))
+            ->first();
+	if ($patient) {
+            return response()->json([
+	        'message' => 'Ya existe un paciente con este Documento'
+            ], 422);
+        }
         $patient = new Patient($request->all());
         $nameComplete = $request->input('FirstName') . ' ';
         

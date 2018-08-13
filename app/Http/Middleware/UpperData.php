@@ -10,7 +10,6 @@ class UpperData extends TransformsRequest
     protected $except = [
         'password',
         'Password',
-        'Email',
         'password_confirmation',
     ];
 

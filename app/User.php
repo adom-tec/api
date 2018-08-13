@@ -31,7 +31,7 @@ class User extends Authenticatable
         'State' => 'string'
     ];
     public function findForPassport($username) {
-        return $this->whereEmail($username)->first();
+        return $this->whereRaw("LOWER(EMAIL) = '". strtolower($username). "'")->first();
     }
 
     public function getAuthPassword()
