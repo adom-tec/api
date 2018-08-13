@@ -10,6 +10,7 @@ use App\Professional;
 use Carbon\Carbon;
 use App\ServiceDetail;
 use App\DetailAnswer;
+use Validator;
 
 class PatientServiceController extends Controller
 {
@@ -133,20 +134,26 @@ class PatientServiceController extends Controller
 
     public function getFinalDate(Request $request)
     {
-        $request->validate([
+	$validator = Validator::make($request->all(), [
             'Quantity' => 'required|numeric',
             'ServiceFrecuencyId' => 'required|exists:sqlsrv.cfg.ServiceFrecuency,ServiceFrecuencyId',
             'InitialDate' => 'required'
         ]);
-        $quantity = $request->input('Quantity');
-        $serviceFrecuencyId = $request->input('ServiceFrecuencyId');
-        $initialDate = $request->input('InitialDate');
-        $sql = "exec sas.CalculateFinalDateAssignService $quantity,$serviceFrecuencyId,'$initialDate'";
-        $finalDate = \DB::select(\DB::raw($sql))[0]->FinalDateAssignService;
-        return response()->json([
-            'date' => Carbon::createFromFormat('d-m-Y', $finalDate)->format('Y-m-d')
-
-        ]);
+	
+	if (!$validator->fails()) {
+	    $quantity = $request->input('Quantity');
+	    $serviceFrecuencyId = $request->input('ServiceFrecuencyId');
+	    $initialDate = $request->input('InitialDate');
+	    $sql = "exec sas.CalculateFinalDateAssignService $quantity,$serviceFrecuencyId,'$initialDate'";
+	    $finalDate = \DB::select(\DB::raw($sql))[0]->FinalDateAssignService;
+	    return response()->json([
+	        'date' => Carbon::createFromFormat('d-m-Y', $finalDate)->format('Y-m-d')
+	    ]);
+	} else {
+	    return response()->json([
+		'message' => 'Valores incorrectos, por favor verifique e intente nuevamente.'
+            ], 422);
+	}
     }
 
 

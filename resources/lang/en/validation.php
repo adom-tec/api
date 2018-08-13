@@ -104,6 +104,10 @@ return [
             'rule-name' => 'custom-message',
         ],
     ],
+    
+    'exception' => [
+        'message' => 'Valores incorrectos, por favor verifique e intente nuevamente.'
+    ],
 
     /*
     |--------------------------------------------------------------------------

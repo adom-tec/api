@@ -53,7 +53,15 @@ class ProfessionalController extends Controller
             'AccountTypeId' => 'required|exists:sqlsrv.cfg.AccountType,Id',
             'AccountNumber' => 'required' 
         ]);
-        
+        $professional = Professional::where('Document', $request->input('Document'))
+            ->where('DocumentTypeId', $request->input('DocumentTypeId'))
+            ->first();
+
+        if ($professional) {
+           return response()->json([
+                'message' => 'Ya existe un Profesional con este documento'
+            ], 422);
+        }
         $dataProfessional = $request->except(['FirstName', 'SecondName', 'Surname', 'SecondSurname', 'Email']);
         $professional = new Professional($dataProfessional);
         $user = User::where('Email', $request->input('Email'))->first();
