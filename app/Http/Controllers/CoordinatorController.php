@@ -42,7 +42,15 @@ class CoordinatorController extends Controller
             'Email' => 'required|email',
             'GenderId' => 'required|exists:sqlsrv.cfg.Gender,Id',
         ]);
-        
+        $coordinator = Coordinator::where('Document', $request->input('Document'))
+	    ->where('DocumentTypeId', $request->input('DocumentTypeId'))
+	    ->first();
+
+	if ($coordinator) {
+	   return response()->json([
+		'message' => 'Ya existe un Coordinador con este documento'
+	    ], 422);
+	}
         $dataCoordinator = $request->except(['FirstName', 'SecondName', 'Surname', 'SecondSurname', 'Email']);
         $coordinator = new Coordinator($dataCoordinator);
         $user = User::where('Email', $request->input('Email'))->first();
