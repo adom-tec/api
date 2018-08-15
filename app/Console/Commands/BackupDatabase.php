@@ -38,7 +38,7 @@ class BackupDatabase extends Command
      */
     public function handle()
     {
-        $date = Carbon::now()->format('Y-m-d h_i');
+        $date = Carbon::now()->format('Y_m_d__H_i');
         exec("sqlcmd -S localhost -U sa -P '" . config('database.connections.sqlsrv.password') . "' -Q \"BACKUP DATABASE [AdomServices] TO DISK = N'/var/opt/mssql/data/AdomServices(${date}).bak' WITH NOFORMAT, NOINIT, NAME = 'AdomServices', SKIP, NOREWIND, NOUNLOAD, STATS = 10\"");
     }
 }

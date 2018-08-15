@@ -38,6 +38,7 @@ class UpdateServicesNursing extends Command
      */
     public function handle()
     {
+	$date = Carbon::now()->format('Y-m-d');
         \DB::statement("EXEC AdomServices.sas.UpdateServiceStatus '$date'");
     }
 }

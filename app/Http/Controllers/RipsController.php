@@ -31,7 +31,7 @@ class RipsController extends Controller
                     ->where('cfg.Services.ServiceTypeId', $serviceType);
             })
             ->where('StateId', 2)
-            ->where('CopaymentStatus', 1)
+            //->where('CopaymentStatus', 1)
             ->with(['patient:PatientId,NameCompleted,Document', 'service:ServiceId,Name', 'entity:EntityId,Name', 'planService:PlanEntityId,Name']);
 
         if ($request->input('PlanEntity')) {

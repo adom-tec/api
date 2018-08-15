@@ -14,7 +14,7 @@ class ReportController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('verify.action:/ReportSpecial/Get')->only(['getConsolidadoReport', 'getDetalleReport']);
+        $this->middleware('verify.action:/SpecialReport/Create')->only(['getConsolidadoReport', 'getDetalleReport']);
         $this->middleware('verify.action:/CopaymentReport/Create')->only(['getCopaymentReport', 'getNominaReport']);
     }
 
@@ -78,21 +78,13 @@ class ReportController extends Controller
 
         if ($request->input('InitDate')) {
             $initDate = $request->input('InitDate');
-            $sql .= " AND Ags.InitialDate >= CONVERT(DATE, '$initDate', 105)
-             AND Ags.StateId = 2
-             AND EXISTS(SELECT 1 FROM sas.AssignServiceDetails
-               WHERE DateVisit >= CONVERT(DATE, '$initDate', 105))
-             AND EXISTS(SELECT 1 FROM sas.AssignServiceDetails 
-               WHERE RecordDate >= CONVERT(DATE, '$initDate', 105))";
+            $sql .= " AND (SELECT MIN(DateVisit) FROM sas.AssignServiceDetails where AssignServiceId = Ags.AssignServiceId) >= CONVERT(DATE, '$initDate', 105)
+             AND Ags.StateId = 2";
         }
 
         if ($request->input('FinalDate')) {
             $finalDate = $request->input('FinalDate');
-            $sql .= " AND Ags.InitialDate <= CONVERT(DATE, '$finalDate', 105)
-              AND EXISTS(SELECT 1 FROM sas.AssignServiceDetails 
-                WHERE DateVisit <= CONVERT(DATE, '$finalDate',105)) 
-              AND EXISTS(SELECT 1 FROM sas .AssignServiceDetails 
-                WHERE RecordDate <= CONVERT(DATE, '$finalDate',105))";
+            $sql .= " AND (SELECT DateVisit FROM	sas.AssignServiceDetails WHERE StateId = 2 AND AssignServiceDetailId IN( SELECT MAX(AssignServiceDetailId) FROM	sas.AssignServiceDetails WHERE AssignServiceId = Ags.AssignServiceId)) <= CONVERT(DATE, '$finalDate', 105)";
         }
 
         if ($request->input('EntityId')) {
@@ -109,7 +101,7 @@ class ReportController extends Controller
             $sql .= " AND Ser.ServiceTypeId = " . $request->input('ServiceType');
         }
 
-        $sql .= " ORDER BY ags.RecordDate";
+        $sql .= " ORDER BY RealInitialDate DESC";
 
         $data = json_decode(json_encode(\DB::select(\DB::raw($sql))), true);
 
@@ -241,21 +233,13 @@ class ReportController extends Controller
 
         if ($request->input('InitDate')) {
             $initDate = $request->input('InitDate');
-            $sql .= " AND Ags.InitialDate >= CONVERT(DATE, '$initDate', 105)
-            AND Ags.StateId = 2
-            AND EXISTS(SELECT 1 FROM sas.AssignServiceDetails
-            WHERE DateVisit >= CONVERT(DATE, '$initDate', 105))
-            AND EXISTS(SELECT 1 FROM sas.AssignServiceDetails 
-            WHERE RecordDate >= CONVERT(DATE, '$initDate', 105))";
+            $sql .= " AND Asd.DateVisit >= CONVERT(DATE, '$initDate', 105)
+            AND Ags.StateId = 2";
         }
 
         if ($request->input('FinalDate')) {
             $finalDate = $request->input('FinalDate');
-            $sql .= " AND Ags.InitialDate <= CONVERT(DATE, '$finalDate', 105)
-            AND EXISTS(SELECT 1 FROM sas.AssignServiceDetails 
-                WHERE DateVisit <= CONVERT(DATE, '$finalDate',105)) 
-            AND EXISTS(SELECT 1 FROM sas .AssignServiceDetails 
-                WHERE RecordDate <= CONVERT(DATE, '$finalDate',105))";
+            $sql .= " AND Asd.DateVisit <= CONVERT(DATE, '$finalDate', 105)";
         }
 
         if ($request->input('EntityId')) {
@@ -272,7 +256,7 @@ class ReportController extends Controller
             $sql .= " AND Ser.ServiceTypeId = " . $request->input('ServiceType');
         }
 
-        $sql .= " ORDER BY Asd.DateVisit";
+        $sql .= " ORDER BY Asd.DateVisit DESC";
 
         $data = json_decode(json_encode(\DB::select(\DB::raw($sql))), true);
      
@@ -393,12 +377,12 @@ class ReportController extends Controller
 
         if ($request->input('InitDate')) {
             $initDate = $request->input('InitDate');
-            $sql .= " AND Ags.InitialDate >= CONVERT(DATETIME, '$initDate', 105) ";
+            $sql .= " AND Asd.DateVisit >= CONVERT(DATETIME, '$initDate', 105) ";
         }
 
         if ($request->input('FinalDate')) {
             $finalDate = $request->input('FinalDate');
-            $sql .= " AND Ags.InitialDate <= CONVERT(DATETIME, '$finalDate', 105) ";
+            $sql .= " AND Asd.DateVisit <= CONVERT(DATETIME, '$finalDate', 105) ";
         }
 
         if ($request->input('ServiceId')) {
@@ -418,7 +402,7 @@ class ReportController extends Controller
 
 
 
-        $sql .= " ORDER BY Asd.AssignServiceDetailId";
+        $sql .= " ORDER BY Asd.DateVisit DESC";
 
         $data = json_decode(json_encode(\DB::select(\DB::raw($sql))), true);
 
@@ -488,6 +472,7 @@ class ReportController extends Controller
         $header = [
             'NÚMERO  DE IDENTIFICACIÓN DEL PROFESIONAL',
             'NOMBRE PROFESIONAL',
+            'TIPO DE DOCUMENTO DEL PACIENTE',
             'N° DOCUMENTO  DEL  PACIENTE',
             'NOMBRE COMPLETO DEL PACIENTE',
             'ENTIDAD',
@@ -499,7 +484,6 @@ class ReportController extends Controller
             'FRECUENCIA COPAGO',
             'VALOR TOTAL RECAUDO COPAGOS',
             'VALE/PIN',
-            'TIPO DE DOCUMENTO DEL PACIENTE',
             'KIT MNB',
             'CUANTOS KIT UTILIZO',
             'OTROS VALORES RECIBIDOS',
@@ -540,6 +524,7 @@ class ReportController extends Controller
             return [
                 $datum['ProfessionalDocument'],
                 $datum['ProfessionalName'],
+		$datum['PatientDocumentType'],
                 $datum['PatientDocument'],
                 $datum['PatientName'],
                 $datum['EntityName'],
@@ -551,7 +536,6 @@ class ReportController extends Controller
                 $datum['CoPaymentFrecuency'],
                 $datum['TotalCopaymentReceived'],
                 $datum['Pin'],
-                $datum['PatientDocumentType'],
                 $datum['KITMNB'],
                 $datum['QuantityKITMNB'],
                 $datum['OtherValuesReceived'],
