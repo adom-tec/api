@@ -72,26 +72,26 @@
             <p>BOGOTÁ - COLOMBIA</p>
             <p>610 3520</p>
         </header>
-        <p class="sequence"><strong>Numero Cuenta de Cobro:</strong> {{ $collectionAccount->id }}</p>
+        <p class="sequence"><strong>Número Cuenta de Cobro:</strong> {{ $collectionAccount->id }}</p>
         <table id="payment-info">
             <tr>
                 <th>Fecha de Cuenta de Cobro:</th>
                 <td>{{ $now }}</td>
-                <th>Periodo de Cuenta de Cobro:</th>
+                <th>Período de Cuenta de Cobro:</th>
                 <td colspan="3">{{ $period }}</td>
-                <th>Correo Electronico:</th>
+                <th>Correo Electrónico:</th>
                 <td>{{ $professional->user->Email }}</td>
             </tr>
             <tr>
                 <th>Nombre del Profesional:</th>
                 <td>{{ $name }}</td>
-                <th>Numero de Documento:</th>
+                <th>Número de Documento:</th>
                 <td colspan="3">{{ $professional->Document }}</td>
-                <th>Telefono:</th>
+                <th>Teléfono:</th>
                 <td>{{ $professional->Telephone1 }}</td>
             </tr>
             <tr>
-                <th>Direccion:</th>
+                <th>Dirección:</th>
                 <td colspan="6">{{ $professional->Address }}</td>
             </tr>   
         </table>
@@ -102,7 +102,7 @@
                     <th>N. DOCUMENTO DEL PACIENTE</th>
                     <th>PACIENTE</th>
                     <th>ENTIDAD</th>
-                    <th>AUTORIZACION</th>
+                    <th>AUTORIZACIÓN</th>
                     <th>TIPO DE TERAPIA</th>
                     <th>VALOR A PAGAR AL PROFESIONAL POR TERAPIA</th>
                     <th>CANTIDAD DE TERAPIAS REALIZADAS</th>
@@ -111,7 +111,7 @@
                     <th>VALOR TOTAL RECAUDADO COPAGOS</th>
                     <th>VALE/PIN</th>
                     <th>KIT MNB</th>
-                    <th>CUANTOS KIT UTILIZO</th>
+                    <th>CUANTOS KIT UTILIZÓ</th>
                     <th>TOTAL OTROS VALORES RECIBIDOS</th>
                     <th>VALORA ENTREGAR</th>
                     <th>SUBTOTAL</th>
@@ -120,8 +120,8 @@
             <tbody>
             @foreach ($services as $service)
                 <tr>
+		    <td>{{ $service['PatientDocument'] }}</td>
                     <td>{{ $service['PatientName'] }}</td>
-                    <td>{{ $service['PatientDocument'] }}</td>
                     <td>{{ $service['EntityName'] }}</td>
                     <td>{{ $service['AuthorizationNumber'] }}</td>
                     <td>{{ $service['ServiceName'] }}</td>

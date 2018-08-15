@@ -24,7 +24,7 @@ class UserController extends Controller
     {
         $this->middleware('verify.action:/Users/Get')->only('index');
         $this->middleware('verify.action:/Users/Create')->only('store');
-        $this->middleware('verify.action:/Users/Edit')->only('update');
+       // $this->middleware('verify.action:/Users/Edit')->only('update');
     }
 
 
