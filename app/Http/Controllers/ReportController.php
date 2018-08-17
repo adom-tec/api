@@ -78,13 +78,13 @@ class ReportController extends Controller
 
         if ($request->input('InitDate')) {
             $initDate = $request->input('InitDate');
-            $sql .= " AND (SELECT MIN(DateVisit) FROM sas.AssignServiceDetails where AssignServiceId = Ags.AssignServiceId) >= CONVERT(DATE, '$initDate', 105)
+            $sql .= " AND (SELECT MIN(DateVisit) FROM sas.AssignServiceDetails where AssignServiceId = Ags.AssignServiceId and sas.AssignServiceDetails.StateId = 2) >= CONVERT(DATE, '$initDate', 105)
              AND Ags.StateId = 2";
         }
 
         if ($request->input('FinalDate')) {
             $finalDate = $request->input('FinalDate');
-            $sql .= " AND (SELECT DateVisit FROM	sas.AssignServiceDetails WHERE StateId = 2 AND AssignServiceDetailId IN( SELECT MAX(AssignServiceDetailId) FROM	sas.AssignServiceDetails WHERE AssignServiceId = Ags.AssignServiceId)) <= CONVERT(DATE, '$finalDate', 105)";
+            $sql .= " AND (SELECT MAX(DateVisit) FROM sas.AssignServiceDetails WHERE AssignServiceId = Ags.AssignServiceId and sas.AssignServiceDetails.StateId = 2) <= CONVERT(DATE, '$finalDate', 105)";
         }
 
         if ($request->input('EntityId')) {
@@ -229,12 +229,11 @@ class ReportController extends Controller
         LEFT JOIN sec.Users usr ON usr.UserId = Pro.UserId
         LEFT JOIN sec.Users cal ON cal.UserId = Asd.VerifiedBy
         LEFT JOIN sec.Users qua ON qua.UserId = Asd.QualityCallUser
-        WHERE 1 = 1";
+        WHERE Asd.StateId = 2";
 
         if ($request->input('InitDate')) {
             $initDate = $request->input('InitDate');
-            $sql .= " AND Asd.DateVisit >= CONVERT(DATE, '$initDate', 105)
-            AND Ags.StateId = 2";
+            $sql .= " AND Asd.DateVisit >= CONVERT(DATE, '$initDate', 105)";
         }
 
         if ($request->input('FinalDate')) {
