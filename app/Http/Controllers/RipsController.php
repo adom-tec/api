@@ -63,7 +63,7 @@ class RipsController extends Controller
 		}
 	    }
 	    $servicesCount = PatientService::where('InvoiceNumber', $invoicesNumber[0])->count('AssignServiceId');
-	    if (!$equalInvoicesNumber && ($equalInvoicesNumber && (count($invoicesNumber) != $servicesCount))) {
+	    if (!$equalInvoicesNumber || ($equalInvoicesNumber && (count($invoicesNumber) != $servicesCount))) {
 		return response()->json([
 	            'message' => 'Error, Algunos servicios ya tienen factura asignada'
 	        ], 418);
