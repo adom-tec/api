@@ -49,7 +49,7 @@ class RipsController extends Controller
 
     public function generateRips(Request $request)
     {
-	$getServicesForInvoicesNumber = false;
+
         $services = PatientService::whereIn('AssignServiceId', $request->input('services'))
             ->whereNotNull('InvoiceNumber')->get()->toArray();
         if (count($services)) {
@@ -62,12 +62,12 @@ class RipsController extends Controller
 		    break;
 		}
 	    }
-	    if (!$equalInvoicesNumber) {
+	    $servicesCount = PatientService::where('InvoiceNumber', $invoicesNumber[0])->count('AssignServiceId');
+	    if (!$equalInvoicesNumber && ($equalInvoicesNumber && count($invoicesNumber) != $servicesCount)) {
 		return response()->json([
 	            'message' => 'Error, Algunos servicios ya tienen factura asignada'
-	        ], 400);
+	        ], 418);
 	    }
-	    $getServicesForInvoicesNumber = true;
         }
         $generatedRip = new GeneratedRip();
         $generatedRip->InvoiceNumber = $request->input('InvoiceNumber');
