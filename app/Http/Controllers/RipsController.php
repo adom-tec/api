@@ -21,10 +21,12 @@ class RipsController extends Controller
 
     public function getServices(Request $request)
     {
+	$initDate = $request->input('InitDate');
+	$finalDate = $request->input('FinalDate');
         $serviceType = $request->input('ServiceType');
         $services = PatientService::select('AssignServiceId','PatientId', 'sas.AssignService.ServiceId', 'EntityId', 'PlanEntityId', 'AuthorizationNumber', 'InitialDate', 'FinalDate', 'InvoiceNumber')
-            ->where('InitialDate', '>=', $request->input('InitDate'))
-            ->where('FinalDate', '<=', $request->input('FinalDate'))
+            ->whereRaw("(SELECT MIN(DateVisit) FROM sas.AssignServiceDetails where sas.AssignService.AssignServiceId = sas.AssignServiceDetails.AssignServiceId) >= '$initDate'")
+            ->whereRaw("( SELECT MAX(DateVisit) FROM sas.AssignServiceDetails WHERE sas.AssignService.AssignServiceId = sas.AssignServiceDetails.AssignServiceId) <= '$finalDate'")
             ->where('EntityId', $request->input('Entity'))
             ->join('cfg.Services', function ($join) use ($serviceType) {
                 $join->on('cfg.Services.ServiceId', '=', 'sas.AssignService.ServiceId')
@@ -38,7 +40,11 @@ class RipsController extends Controller
             $services->where('PlanEntityId', $request->input('PlanEntity'));
         }
 
-        return $services->get();
+        return $services->get()->map(function ($service) {
+	    $service->InitialDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)->min('DateVisit');
+	    $service->FinalDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)->max('DateVisit');
+	    return $service;
+	});
     } 
 
     public function generateRips(Request $request)
@@ -57,6 +63,7 @@ class RipsController extends Controller
         $services = PatientService::whereIn('AssignServiceId', $request->input('services'))
             ->with(['patient', 'service', 'entity', 'supplies'])
             ->get();
+
         $adomInfo = AdomInfo::all()[0];
 
         $i = 0;
@@ -80,7 +87,7 @@ class RipsController extends Controller
 
         $apData = $this->getApData($servicesAp, $adomInfo, $InvoiceNumber, $finalDate);
         $atData = $this->getAtData($services, $adomInfo, $InvoiceNumber);
-        $afData = $this->getAfData($services, $adomInfo, $InvoiceNumber, $InvoiceDate, $CopaymentAmount, $NetWorth);
+        $afData = $this->getAfData($services->toArray(), $adomInfo, $InvoiceNumber, $InvoiceDate, $CopaymentAmount, $NetWorth, $acData);
         $ctData = $this->getCtData($adomInfo, $generatedRip->GeneratedRipsId, count($usData), count($acData), count($apData), count($atData), count($afData));
         \Storage::disk('rips')->makeDirectory($generatedRip->GeneratedRipsId);
         $directory = storage_path('app/public/rips') . '/' . $generatedRip->GeneratedRipsId . '/';
@@ -241,55 +248,38 @@ class RipsController extends Controller
         return $data;
     }
 
-    private function getAfData($services, $adomInfo, $invoiceNumber, $invoiceDate, $copayment, $netValue)
+    private function getAfData($services, $adomInfo, $invoiceNumber, $invoiceDate, $copayment, $netValue, $acData)
     {
         $data = [];
         $identifiers = [];
         $cant = count($services);
         $invoiceDate = Carbon::createFromFormat('Y-m-d', $invoiceDate)->format('d/m/Y');
-        for ($i = 0; $i < $cant; $i++) {
-            if (array_search($services[$i]->entity->EntityId, $identifiers) === false) {
-                $identifiers[] = $services[$i]->entity->EntityId;
-            } else {
-                unset($services[$i]);
-            }
-        }
+	$entity = $services[0]['entity'];
+	$otherValuesReceived = array_sum(array_column($services, 'OtherValuesReceived'));
 
-        $initDate = '';
-        $finalDate = '';
+	$initDate = $acData[0][4];
+	$finalDate = $acData[count($acData) - 1][4];
 
-        foreach ($services as $service) {
-            $initDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)
-                ->where('StateId', 2)
-                ->min('DateVisit');
+	$data[] = [
+	    $adomInfo->ProviderCode,
+	    $adomInfo->BusinessName,
+	    $adomInfo->IdentificationType,
+	    $adomInfo->IdentificationNumber,
+	    $invoiceNumber,
+	    $invoiceDate,
+	    $initDate,
+	    $finalDate,
+	    $entity['Code'],
+	    $entity['Name'],
+	    '',
+	    '',
+	    '',
+	    $copayment,
+	    '0',
+	    $otherValuesReceived,
+	    $netValue
+	]; 
 
-            $finalDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)
-                ->where('StateId', 2)
-                ->max('DateVisit');
-
-            $initDate = Carbon::createFromFormat('Y-m-d', $initDate)->format('d/m/Y');
-            $finalDate = Carbon::createFromFormat('Y-m-d', $finalDate)->format('d/m/Y');
-
-            $data[] = [
-                $adomInfo->ProviderCode,
-                $adomInfo->BusinessName,
-                $adomInfo->IdentificationType,
-                $adomInfo->IdentificationNumber,
-                $invoiceNumber,
-                $invoiceDate,
-                $initDate,
-                $finalDate,
-                $service->entity->Code,
-                $service->entity->Name,
-                '',
-                '',
-                '',
-                $copayment,
-                '0',
-                $service->OtherValuesReceived,
-                $netValue
-            ]; 
-        }
 
         return $data;
     }
