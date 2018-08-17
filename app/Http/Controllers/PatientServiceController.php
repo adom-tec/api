@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use App\ServiceDetail;
 use App\DetailAnswer;
 use Validator;
+use App\Service;
 
 class PatientServiceController extends Controller
 {
@@ -116,7 +117,8 @@ class PatientServiceController extends Controller
         $patientService = \DB::select(\DB::raw($sql))[0]->AssignServiceId;
         $patientService = PatientService::with(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService'])
             ->findOrFail($patientService);
-        if ($ProfessionalId != -1) {
+	$service = Service::findOrFail($ServiceId);
+        if ($ProfessionalId != -1 && $service->ServiceTypeId != 3) {
             $professional = Professional::findOrFail($ProfessionalId);
             $name = $professional->user->FirstName . ' ';
             if ($professional->user->SecondName) {
@@ -126,7 +128,9 @@ class PatientServiceController extends Controller
             if ($professional->user->SecondSurname) {
                 $name .= $professional->user->SecondSurname;
             }
-            \Mail::to($professional->user->Email)->send(new ServiceAssigned($name, $patientService));
+	    
+	    \Mail::to($professional->user->Email)->send(new ServiceAssigned($name, $patientService));
+
         }
         
         return response()->json($patientService, 201);
