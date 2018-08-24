@@ -38,4 +38,9 @@ class Professional extends Model
     {
         return $this->belongsTo('App\User', 'UserId');
     }
+
+    public function contractType()
+    {
+	return $this->belongsTo('App\ContractType', 'ContractTypeId');
+    }
 }

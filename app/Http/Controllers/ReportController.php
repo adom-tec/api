@@ -646,4 +646,84 @@ class ReportController extends Controller
         return $excel->get();
 
     }
+
+    public function getProfessionalReport(Request $request)
+    {
+	$request->validate([
+	    'State' => 'required'
+	]);
+	$state = $request->input('State');
+	$professionals = Professional::select('cfg.Professionals.*')
+	    ->join('sec.Users', function ($join) use ($state) {
+		$join->on('sec.Users.UserId', '=', 'cfg.Professionals.UserId')
+		    ->where('sec.Users.State', $state);
+	    });
+	
+	if ($request->input('SpecialtyId')) {
+	    $professionals->where('SpecialtyId', $request->input('SpecialtyId'));
+	}
+
+	if ($request->input('ContractTypeId')) {
+	    $professionals->where('ContractTypeId', $request->input('ContractTypeId'));
+	}
+
+	$professionals = $professionals->with(['user', 'gender', 'specialty', 'contractType', 'accountType'])->get();
+
+	$data = [];
+	
+	foreach ($professionals as $professional) {
+
+	    $name = $professional->user->FirstName . ' ';
+            if ($professional->user->SecondName) {
+                $name .= $professional->user->SecondName . ' ';
+            }
+            $name .= $professional->user->Surname . ' ';
+            if ($professional->user->SecondSurname) {
+                $name .= $professional->user->SecondSurname;
+            }
+	    $data[] = [
+		$name,
+		$professional->Document,
+		$professional->gender->Name,
+		$professional->BirthDate ? Carbon::createFromFormat('Y-m-d', $professional->BirthDate)->format('d/m/Y') : '',
+		$professional->specialty->Name,
+		$professional->contractType ? $professional->contractType->Name : '',
+		$professional->DateAdmission ? Carbon::createFromFormat('Y-m-d', substr($professional->DateAdmission, 0, 10))->format('d/m/Y') : '',
+		$professional->CodeBank,
+		$professional->accountType->Name,
+		$professional->AccountNumber,
+		$professional->Telephone1,
+		$professional->Telephone2,
+		$professional->user->Email,
+		$professional->Address,
+		$professional->Neighborhood,
+		$professional->Availability,
+		$professional->user->State ? 'ACTIVO' : 'INACTIVO',
+	    ];
+	}
+
+	$header = [
+	    'NOMBRE COMPLETO PROFESIONAL',
+	    'NÚMERO DE CÉDULA',
+	    'SEXO',
+	    'FECHA DE NACIMIENTO',
+	    'ESPECIALIDAD',
+	    'TIPO DE CONTRATO',
+	    'FECHA DE INGRESO',
+	    'BANCO',
+	    'TIPO DE CUENTA',
+	    'NÚMERO DE CUENTA', 
+	    'TELÉFONO',
+	    'TELÉFONO SECUNDARIO',
+	    'CORREO ELECTRÓNICO',
+	    'DIRECCIÓN',
+	    'BARRIO',
+	    'DISPONIBILIDAD',
+	    'ESTADO',
+	];
+
+	$excel = new ExcelBuilder($header, $data);
+        $excel->build();
+        return $excel->get();
+    }
 }
