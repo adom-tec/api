@@ -16,6 +16,7 @@ class ReportController extends Controller
     {
         $this->middleware('verify.action:/SpecialReport/Create')->only(['getConsolidadoReport', 'getDetalleReport']);
         $this->middleware('verify.action:/CopaymentReport/Create')->only(['getCopaymentReport', 'getNominaReport']);
+	$this->middleware('verify.action:/prosessionalreport/Create')->only('getProfessionalReport');
     }
 
     public function getConsolidadoReport(Request $request)
@@ -649,15 +650,14 @@ class ReportController extends Controller
 
     public function getProfessionalReport(Request $request)
     {
-	$request->validate([
-	    'State' => 'required'
-	]);
 	$state = $request->input('State');
-	$professionals = Professional::select('cfg.Professionals.*')
-	    ->join('sec.Users', function ($join) use ($state) {
+	$professionals = Professional::select('cfg.Professionals.*');
+	if ($state) {
+	    $professionals->join('sec.Users', function ($join) use ($state) {
 		$join->on('sec.Users.UserId', '=', 'cfg.Professionals.UserId')
-		    ->where('sec.Users.State', $state);
+		    ->where('sec.Users.State', $state == 2 ? 0 : 1);
 	    });
+	}
 	
 	if ($request->input('SpecialtyId')) {
 	    $professionals->where('SpecialtyId', $request->input('SpecialtyId'));
