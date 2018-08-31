@@ -79,8 +79,7 @@ class ReportController extends Controller
 
         if ($request->input('InitDate')) {
             $initDate = $request->input('InitDate');
-            $sql .= " AND (SELECT MIN(DateVisit) FROM sas.AssignServiceDetails where AssignServiceId = Ags.AssignServiceId and sas.AssignServiceDetails.StateId = 2) >= CONVERT(DATE, '$initDate', 105)
-             AND Ags.StateId = 2";
+            $sql .= " AND (SELECT MIN(DateVisit) FROM sas.AssignServiceDetails where AssignServiceId = Ags.AssignServiceId and sas.AssignServiceDetails.StateId = 2) >= CONVERT(DATE, '$initDate', 105)";
         }
 
         if ($request->input('FinalDate')) {
