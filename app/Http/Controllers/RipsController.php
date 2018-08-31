@@ -139,8 +139,8 @@ class RipsController extends Controller
         $cant = count($services);
 
         for ($i = 0; $i < $cant; $i++) {
-            if (array_search([$services[$i]->patient->PatientId, $services[$i]->service->ServiceId], $identifiers) === false) {
-                $identifiers[] = [$services[$i]->patient->PatientId, $services[$i]->service->ServiceId];
+            if (array_search($services[$i]->patient->PatientId, $identifiers) === false) {
+                $identifiers[] = $services[$i]->patient->PatientId;
             } else {
                 unset($services[$i]);
             }
