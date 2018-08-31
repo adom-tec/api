@@ -147,7 +147,12 @@ class RipsController extends Controller
         }
 
         foreach ($services as $service) {
-            $gender = $service->patient->GenderId == 1 ? 'M' : $service->patient->GenderId == 2 ? 'F' : '';
+            $gender =  '';
+	    if ($service->patient->GenderId == 1) {
+		$gender = 'M';
+	    } else if ($service->patient->GenderId == 2) {
+		$gender = 'F';
+	    }
             $data[] = [
                 
                 $service->patient->documentType->Abbreviation,
