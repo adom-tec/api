@@ -76,6 +76,9 @@ return [
             'password' => env('DB_PASSWORD', ''),
             'charset' => 'utf8',
             'prefix' => '',
+	    'options' => [
+            	PDO::ATTR_TIMEOUT => 300,
+	    ]
         ],
 
     ],
