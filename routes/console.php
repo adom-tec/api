@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Inspiring;
+use App\PatientService;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,3 +17,8 @@ use Illuminate\Foundation\Inspiring;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->describe('Display an inspiring quote');
+
+Artisan::command('test-db', function () {
+    $services = PatientService::all()->toJson();
+    file_put_contents('/var/www/html/adom-back/datos.json', $services);
+})->describe('genera un archivo');
