@@ -65,7 +65,7 @@ class ServiceDetailController extends Controller
         }
         
         $paymentType = $detail['PaymentType'] ? $PaymentType : $serviceDetail->PaymentType;
-        $receivedAmount = $detail['ReceivedAmount'] ? $ReceivedAmount : $serviceDetail->ReceivedAmount;
+        $receivedAmount = $detail['ReceivedAmount'] >= 0 ? $ReceivedAmount : $serviceDetail->ReceivedAmount;
         $otherAmount = $detail['OtherAmount'] ? $OtherAmount : $serviceDetail->OtherAmount;
         $observation = $detail['Observation'] ? $Observation : $serviceDetail->Observation;
         $pin = $detail['Pin'] ? $Pin : $serviceDetail->Pin;
