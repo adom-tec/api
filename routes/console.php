@@ -22,3 +22,4 @@ Artisan::command('test-db', function () {
     $services = PatientService::all()->toJson();
     file_put_contents('/var/www/html/adom-back/datos.json', $services);
 })->describe('genera un archivo');
+
