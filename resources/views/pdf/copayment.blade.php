@@ -72,12 +72,12 @@
             <p>BOGOTÁ - COLOMBIA</p>
             <p>610 3520</p>
         </header>
-        <p class="sequence"><strong>Número Cuenta de Cobro:</strong> {{ $collectionAccount->id }}</p>
+        <p class="sequence"><strong>Número de relación servicios de TPS:</strong> {{ $collectionAccount->id }}</p>
         <table id="payment-info">
             <tr>
-                <th>Fecha de Cuenta de Cobro:</th>
+                <th>Fecha de relación servicios de TPS:</th>
                 <td>{{ $now }}</td>
-                <th>Período de Cuenta de Cobro:</th>
+                <th>Período de relación servicios de TPS:</th>
                 <td colspan="3">{{ $period }}</td>
                 <th>Correo Electrónico:</th>
                 <td>{{ $professional->user->Email }}</td>
