@@ -198,6 +198,15 @@ class CopaymentController extends Controller
 
         $data = [];
         $i = 0;
+	$professional = Professional::findOrFail($professionalId);
+	$name = $professional->user->FirstName . ' ';
+        if ($professional->user->SecondName) {
+            $name .= $professional->user->SecondName . ' ';
+        }
+        $name .= $professional->user->Surname . ' ';
+        if ($professional->user->SecondSurname) {
+            $name .= $professional->user->SecondSurname;
+        }
         foreach ($assignServices as $service) {
             $kitMNB = ServiceSupply::where('AssignServiceId', $service->AssignServiceId)
                 ->where('SupplyId', 3)->sum('Quantity');
@@ -211,15 +220,7 @@ class CopaymentController extends Controller
             } elseif ($service->professional_rate_id == 4) {
                 $paymentProfessional = $service->service->holiday_value;
             }
-            $professional = $service->professional;
-            $name = $professional->user->FirstName . ' ';
-            if ($professional->user->SecondName) {
-                $name .= $professional->user->SecondName . ' ';
-            }
-            $name .= $professional->user->Surname . ' ';
-            if ($professional->user->SecondSurname) {
-                $name .= $professional->user->SecondSurname;
-            }
+
             $subTotal = $service->QuantityRealized * $paymentProfessional;
             $data[] = [
                 'AssignServiceId' => $service->AssignServiceId,
