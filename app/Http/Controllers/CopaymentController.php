@@ -145,7 +145,11 @@ class CopaymentController extends Controller
 
     public function getServices($professionalId, $initDate, $finalDate, $copaymentStatus, $stateId, $services = [], $visitsId = [])
     {
-        $assignServices = PatientService::select('sas.AssignService.*', 'sas.AssignServiceDetails.professional_rate_id', 'sas.AssignServiceDetails.ReceivedAmount', 'sas.AssignServiceDetails.Pin', 'sas.AssignServiceDetails.OtherAmount');
+        if (!$copaymentStatus) {
+            $assignServices = PatientService::select('sas.AssignService.*', 'sas.AssignServiceDetails.professional_rate_id', 'sas.AssignServiceDetails.ReceivedAmount', 'sas.AssignServiceDetails.Pin', 'sas.AssignServiceDetails.OtherAmount');
+        } else {
+            $assignServices = PatientService::select('sas.AssignService.*', 'sas.AssignServiceDetails.professional_rate_id', 'sas.AssignServiceDetails.ReceivedAmount', 'sas.AssignServiceDetails.Pin', 'sas.AssignServiceDetails.OtherAmount', 'sas.CollectionAccounts.id', 'sas.CollectionAccounts.RecordDate');
+        }
         if (!count($visitsId)) {
             $assignServices = $assignServices->join('sas.AssignServiceDetails', function ($join) use ($professionalId, $initDate, $finalDate, $copaymentStatus) {
                 $join->on('sas.AssignServiceDetails.AssignServiceId', '=', 'sas.AssignService.AssignServiceId')
@@ -163,8 +167,7 @@ class CopaymentController extends Controller
                 });
         }
 
-        $assignServices = $assignServices->orderBy('sas.AssignService.AssignServiceId')
-            ->with(['patient.documentType', 'entity', 'service', 'coPaymentFrecuency', 'professional']);
+        $assignServices = $assignServices->with(['patient.documentType', 'entity', 'service', 'coPaymentFrecuency', 'professional']);
 
         if ($stateId == 1 || $stateId == 2) {
             $assignServices->where('sas.AssignService.StateId', $stateId);
@@ -175,18 +178,35 @@ class CopaymentController extends Controller
         if (count($services)) {
             $assignServices->whereIn('sas.AssignServiceDetails.AssignServiceDetailId', $services);
         }
+        if ($copaymentStatus) {
+            $assignServices->join('sas.VisitCollectionAcount', function ($join) {
+                $join->on('sas.VisitCollectionAcount.AssignServiceDetailId', '=', 'sas.AssignServiceDetails.AssignServiceDetailId');
+            });
 
+            $assignServices->join('sas.CollectionAccounts', function ($join) {
+               $join->on('sas.CollectionAccounts.id', '=', 'sas.VisitCollectionAcount.CollectionAccountId');
+            });
+
+            $assignServices->orderBy('sas.CollectionAccounts.RecordDate');
+        }
+
+        $assignServices->orderBy('sas.AssignService.AssignServiceId');
         $assignServices = $assignServices->get();
         $count = count($assignServices);
         $identifiers = [];
         for ($i = 0; $i < $count; $i++) {
-            if (array_search([$assignServices[$i]->AssignServiceId, $assignServices[$i]->professional_rate_id], $identifiers) === false) {
+            if ($copaymentStatus) {
+                $filter = [$assignServices[$i]->AssignServiceId, $assignServices[$i]->id];
+            } else {
+                $filter = [$assignServices[$i]->AssignServiceId, $assignServices[$i]->professional_rate_id];
+            }
+            if (array_search($filter, $identifiers) === false) {
                 $position = $i;
                 $assignServices[$i]->QuantityRealized = 1;
                 $assignServices[$i]->TotalCopaymentReceived = $assignServices[$i]->ReceivedAmount;
                 $assignServices[$i]->TotalPin = $assignServices[$i]->Pin ? $assignServices[$i]->Pin . ' - ' : '';
                 $assignServices[$i]->OtherValuesReceived = $assignServices[$i]->OtherAmount;
-                $identifiers[] = [$assignServices[$i]->AssignServiceId, $assignServices[$i]->professional_rate_id];
+                $identifiers[] = $filter;
             } else {
                 $assignServices[$position]->QuantityRealized += 1;
                 $assignServices[$position]->TotalCopaymentReceived += $assignServices[$i]->ReceivedAmount;
@@ -198,17 +218,6 @@ class CopaymentController extends Controller
 
         $data = [];
         $i = 0;
-	if ($professionalId) {
-	    $professional = Professional::findOrFail($professionalId);
-	    $name = $professional->user->FirstName . ' ';
-            if ($professional->user->SecondName) {
-                $name .= $professional->user->SecondName . ' ';
-            }
-            $name .= $professional->user->Surname . ' ';
-            if ($professional->user->SecondSurname) {
-                $name .= $professional->user->SecondSurname;
-            }
-	}
         foreach ($assignServices as $service) {
             $kitMNB = ServiceSupply::where('AssignServiceId', $service->AssignServiceId)
                 ->where('SupplyId', 3)->sum('Quantity');
@@ -222,21 +231,15 @@ class CopaymentController extends Controller
             } elseif ($service->professional_rate_id == 4) {
                 $paymentProfessional = $service->service->holiday_value;
             }
-
-	    $name = '';
-
-	    if (!$professionalId && $service->professional) {
-		$professional = $service->professional;
-	        $name = $professional->user->FirstName . ' ';
-                if ($professional->user->SecondName) {
-                    $name .= $professional->user->SecondName . ' ';
-                }
-                $name .= $professional->user->Surname . ' ';
-                if ($professional->user->SecondSurname) {
-                    $name .= $professional->user->SecondSurname;
-                }
-	    }
-
+            $professional = $service->professional;
+            $name = $professional->user->FirstName . ' ';
+            if ($professional->user->SecondName) {
+                $name .= $professional->user->SecondName . ' ';
+            }
+            $name .= $professional->user->Surname . ' ';
+            if ($professional->user->SecondSurname) {
+                $name .= $professional->user->SecondSurname;
+            }
             $subTotal = $service->QuantityRealized * $paymentProfessional;
             $data[] = [
                 'AssignServiceId' => $service->AssignServiceId,
@@ -264,6 +267,9 @@ class CopaymentController extends Controller
                 $data[$i]['ProfessionalDocument'] = $service->professional->Document;
                 $data[$i]['ProfessionalName'] = $name;
                 $data[$i]['ProfessionalId'] = $service->professional->ProfessionalId;
+                if ($copaymentStatus) {
+                    $data[$i]['DeliveredDate'] = $service->RecordDate;
+                }
             }
 
             $i++;
