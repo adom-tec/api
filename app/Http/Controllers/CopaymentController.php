@@ -194,20 +194,27 @@ class CopaymentController extends Controller
         $assignServices = $assignServices->get();
         $count = count($assignServices);
         $identifiers = [];
+	    $indexes = [];
+        // return $assignServices;
+        
         for ($i = 0; $i < $count; $i++) {
             if ($copaymentStatus) {
-                $filter = [$assignServices[$i]->AssignServiceId, $assignServices[$i]->id];
+                $filter = [$assignServices[$i]->AssignServiceId, $assignServices[$i]->id, $assignServices[$i]->professional_rate_id];
             } else {
                 $filter = [$assignServices[$i]->AssignServiceId, $assignServices[$i]->professional_rate_id];
             }
-            if (array_search($filter, $identifiers) === false) {
-                $position = $i;
+
+            $search = array_search($filter, $identifiers);
+            
+            if ($search === false) {
                 $assignServices[$i]->QuantityRealized = 1;
                 $assignServices[$i]->TotalCopaymentReceived = $assignServices[$i]->ReceivedAmount;
                 $assignServices[$i]->TotalPin = $assignServices[$i]->Pin ? $assignServices[$i]->Pin . ' - ' : '';
                 $assignServices[$i]->OtherValuesReceived = $assignServices[$i]->OtherAmount;
                 $identifiers[] = $filter;
+		        $indexes[] = $i;
             } else {
+		        $position = $indexes[$search];
                 $assignServices[$position]->QuantityRealized += 1;
                 $assignServices[$position]->TotalCopaymentReceived += $assignServices[$i]->ReceivedAmount;
                 $assignServices[$position]->TotalPin .= $assignServices[$i]->Pin ? $assignServices[$i]->Pin . ' - ' : '';
@@ -218,6 +225,7 @@ class CopaymentController extends Controller
 
         $data = [];
         $i = 0;
+
         foreach ($assignServices as $service) {
             $kitMNB = ServiceSupply::where('AssignServiceId', $service->AssignServiceId)
                 ->where('SupplyId', 3)->sum('Quantity');
@@ -240,6 +248,7 @@ class CopaymentController extends Controller
             if ($professional->user->SecondSurname) {
                 $name .= $professional->user->SecondSurname;
             }
+
             $subTotal = $service->QuantityRealized * $paymentProfessional;
             $data[] = [
                 'AssignServiceId' => $service->AssignServiceId,

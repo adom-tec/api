@@ -44,6 +44,9 @@ class ServiceController extends Controller
             'ServiceTypeId' => 'exists:sqlsrv.cfg.ServiceType,Id',
         ]);
         $service->fill($request->all());
+	if ($service->ServiceTypeId != 2) {
+	    $service->InitTime = null;
+	}
         $service->save();
         $service->load(['classification', 'serviceType']);
         return response()->json($service, 200);
