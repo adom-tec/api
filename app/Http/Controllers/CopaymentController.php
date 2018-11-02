@@ -146,9 +146,9 @@ class CopaymentController extends Controller
     public function getServices($professionalId, $initDate, $finalDate, $copaymentStatus, $stateId, $services = [], $visitsId = [])
     {
         if (!$copaymentStatus) {
-            $assignServices = PatientService::select('sas.AssignService.*', 'sas.AssignServiceDetails.professional_rate_id', 'sas.AssignServiceDetails.ReceivedAmount', 'sas.AssignServiceDetails.Pin', 'sas.AssignServiceDetails.OtherAmount');
+            $assignServices = PatientService::select('sas.AssignService.*', 'sas.AssignServiceDetails.professional_rate_id', 'sas.AssignServiceDetails.ReceivedAmount', 'sas.AssignServiceDetails.Pin', 'sas.AssignServiceDetails.OtherAmount', 'sas.AssignServiceDetails.ProfessionalId as ProfessionalVisit');
         } else {
-            $assignServices = PatientService::select('sas.AssignService.*', 'sas.AssignServiceDetails.professional_rate_id', 'sas.AssignServiceDetails.ReceivedAmount', 'sas.AssignServiceDetails.Pin', 'sas.AssignServiceDetails.OtherAmount', 'sas.CollectionAccounts.id', 'sas.CollectionAccounts.RecordDate');
+            $assignServices = PatientService::select('sas.AssignService.*', 'sas.AssignServiceDetails.professional_rate_id', 'sas.AssignServiceDetails.ReceivedAmount', 'sas.AssignServiceDetails.Pin', 'sas.AssignServiceDetails.OtherAmount', 'sas.CollectionAccounts.id', 'sas.CollectionAccounts.RecordDate', 'sas.AssignServiceDetails.ProfessionalId as ProfessionalVisit');
         }
         if (!count($visitsId)) {
             $assignServices = $assignServices->join('sas.AssignServiceDetails', function ($join) use ($professionalId, $initDate, $finalDate, $copaymentStatus) {
@@ -195,7 +195,7 @@ class CopaymentController extends Controller
         $count = count($assignServices);
         $identifiers = [];
 	    $indexes = [];
-        // return $assignServices;
+
         
         for ($i = 0; $i < $count; $i++) {
             if ($copaymentStatus) {
@@ -239,15 +239,6 @@ class CopaymentController extends Controller
             } elseif ($service->professional_rate_id == 4) {
                 $paymentProfessional = $service->service->holiday_value;
             }
-            $professional = $service->professional;
-            $name = $professional->user->FirstName . ' ';
-            if ($professional->user->SecondName) {
-                $name .= $professional->user->SecondName . ' ';
-            }
-            $name .= $professional->user->Surname . ' ';
-            if ($professional->user->SecondSurname) {
-                $name .= $professional->user->SecondSurname;
-            }
 
             $subTotal = $service->QuantityRealized * $paymentProfessional;
             $data[] = [
@@ -273,6 +264,15 @@ class CopaymentController extends Controller
             ];
             
             if (count($visitsId)) {
+		$professional = Professional::findOrFail($service->ProfessionalVisit);
+        	$name = $professional->user->FirstName . ' ';
+        	if ($professional->user->SecondName) {
+                    $name .= $professional->user->SecondName . ' ';
+                }
+        	$name .= $professional->user->Surname . ' ';
+                if ($professional->user->SecondSurname) {
+                    $name .= $professional->user->SecondSurname;
+                }
                 $data[$i]['ProfessionalDocument'] = $service->professional->Document;
                 $data[$i]['ProfessionalName'] = $name;
                 $data[$i]['ProfessionalId'] = $service->professional->ProfessionalId;
