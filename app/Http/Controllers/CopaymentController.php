@@ -273,9 +273,9 @@ class CopaymentController extends Controller
                 if ($professional->user->SecondSurname) {
                     $name .= $professional->user->SecondSurname;
                 }
-                $data[$i]['ProfessionalDocument'] = $service->professional->Document;
+                $data[$i]['ProfessionalDocument'] = $professional->Document;
                 $data[$i]['ProfessionalName'] = $name;
-                $data[$i]['ProfessionalId'] = $service->professional->ProfessionalId;
+                $data[$i]['ProfessionalId'] = $professional->ProfessionalId;
                 if ($copaymentStatus) {
                     $data[$i]['DeliveredDate'] = $service->RecordDate;
                 }
