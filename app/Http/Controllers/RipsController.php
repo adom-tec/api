@@ -50,25 +50,25 @@ class RipsController extends Controller
     public function generateRips(Request $request)
     {
 
-        $services = PatientService::whereIn('AssignServiceId', $request->input('services'))
-            ->whereNotNull('InvoiceNumber')->get()->toArray();
-        if (count($services)) {
-	    $invoicesNumber = array_column($services, 'InvoiceNumber');
-	    $equalInvoicesNumber = true;
-	    $i = 0;
-	    for ($i = 1; $i < count($invoicesNumber); $i++) {
-		if ($invoicesNumber[$i] != $invoicesNumber[$i - 1]) {
-		    $equalInvoicesNumber = false;
-		    break;
-		}
-	    }
-	    $servicesCount = PatientService::where('InvoiceNumber', $invoicesNumber[0])->count('AssignServiceId');
-	    if (!$equalInvoicesNumber || ($equalInvoicesNumber && (count($invoicesNumber) != $servicesCount))) {
-		return response()->json([
-	            'message' => 'Error, Algunos servicios ya tienen factura asignada'
-	        ], 418);
-	    }
-        }
+//        $services = PatientService::whereIn('AssignServiceId', $request->input('services'))
+//            ->whereNotNull('InvoiceNumber')->get()->toArray();
+//        if (count($services)) {
+//	    $invoicesNumber = array_column($services, 'InvoiceNumber');
+//	    $equalInvoicesNumber = true;
+//	    $i = 0;
+//	    for ($i = 1; $i < count($invoicesNumber); $i++) {
+//		if ($invoicesNumber[$i] != $invoicesNumber[$i - 1]) {
+//		    $equalInvoicesNumber = false;
+//		    break;
+//		}
+//	    }
+//	    $servicesCount = PatientService::where('InvoiceNumber', $invoicesNumber[0])->count('AssignServiceId');
+////	    if (!$equalInvoicesNumber || ($equalInvoicesNumber && (count($invoicesNumber) != $servicesCount))) {
+////		return response()->json([
+////	            'message' => 'Error, Algunos servicios ya tienen factura asignada'
+////	        ], 418);
+////	    }
+//        }
         $generatedRip = new GeneratedRip();
         $generatedRip->InvoiceNumber = $request->input('InvoiceNumber');
         $generatedRip->save();
@@ -178,35 +178,36 @@ class RipsController extends Controller
 
     private function getAcData($services, $adomInfo, $invoiceNumber) {
         $data = [];
+        $servicesId = array_column($services->toArray(), 'AssignServiceId');
+        $details = ServiceDetail::whereIn('AssignServiceId', $servicesId)
+            ->where('StateId', 2)
+            ->orderBy('DateVisit')
+            ->with('service')
+            ->get();
 
-        foreach ($services as $service) {
-            $details = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)
-                ->where('StateId', 2)
-                ->get();
-            foreach ($details as $detail) {
-                $date = Carbon::createFromFormat('Y-m-d', $detail->DateVisit)->format('d/m/Y');
-
-                $net = $service->Rate - $detail->ReceivedAmount;
-                $data[] = [
-                    $invoiceNumber,
-                    $adomInfo->ProviderCode,
-                    $service->patient->documentType->Abbreviation,
-                    $service->patient->Document,
-                    $date,
-                    $service->AuthorizationNumber,
-                    $service->service->Code,
-                    $service->Consultation,
-                    $service->External,
-                    $service->Cie10,
-                    '',
-                    '',
-                    '',
-                    2,
-                    $service->Rate,
-                    $service->CoPaymentAmount,
-                    $net
-                ];
-            }
+        foreach ($details as $detail) {
+            $date = Carbon::createFromFormat('Y-m-d', $detail->DateVisit)->format('d/m/Y');
+            $service = $detail->service;
+            $net = $service->Rate - $detail->ReceivedAmount;
+            $data[] = [
+                $invoiceNumber,
+                $adomInfo->ProviderCode,
+                $service->patient->documentType->Abbreviation,
+                $service->patient->Document,
+                $date,
+                $service->AuthorizationNumber,
+                $service->service->Code,
+                1013,
+                $service->External,
+                $service->Cie10,
+                '',
+                '',
+                '',
+                2,
+                $service->Rate,
+                $service->CoPaymentAmount,
+                $net
+            ];
         }
 
         return $data;
