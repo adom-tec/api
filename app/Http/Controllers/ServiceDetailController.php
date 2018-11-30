@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DetailCancelReason;
+use App\PatientService;
 use App\Professional;
 use Illuminate\Http\Request;
 use App\ServiceDetail;
@@ -66,7 +67,7 @@ class ServiceDetailController extends Controller
         
         $paymentType = $detail['PaymentType'] ? $PaymentType : $serviceDetail->PaymentType;
         $receivedAmount = $detail['ReceivedAmount'] >= 0 ? $ReceivedAmount : $serviceDetail->ReceivedAmount;
-        $otherAmount = $detail['OtherAmount'] >= 0 ? $OtherAmount : $serviceDetail->OtherAmount;
+        $otherAmount = $detail['OtherAmount'] ? $OtherAmount : $serviceDetail->OtherAmount;
         $observation = $detail['Observation'] ? $Observation : $serviceDetail->Observation;
         $pin = $detail['Pin'] ? $Pin : $serviceDetail->Pin;
         $verified = $detail['Verified'] ? $Verified : $serviceDetail->Verified;
@@ -89,10 +90,12 @@ class ServiceDetailController extends Controller
         $serviceId = \DB::select(\DB::raw($sql))[0]->AssignServiceId;
 
         $serviceDetail->professional_rate_id = $detail['professional_rate_id'] ? $detail['professional_rate_id'] : $serviceDetail->professional_rate_id;
+        $serviceDetail->AuthorizationNumber = $detail['AuthorizationNumber'] ? $detail['AuthorizationNumber'] : $serviceDetail->AuthorizationNumber;
         if ($detail['StateId'] != 3) {
             DetailCancelReason::where('AssignServiceDetailId', $serviceDetail->AssignServiceDetailId)
                 ->delete();
         }
         $serviceDetail->save();
+        PatientService::updateAuthorizationNumber($serviceDetail->AssignServiceId);
     }
 }

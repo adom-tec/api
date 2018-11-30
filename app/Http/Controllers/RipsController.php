@@ -195,7 +195,7 @@ class RipsController extends Controller
                 $service->patient->documentType->Abbreviation,
                 $service->patient->Document,
                 $date,
-                $service->AuthorizationNumber,
+                $detail->AuthorizationNumber,
                 $service->service->Code,
                 1013,
                 $service->External,
@@ -217,23 +217,27 @@ class RipsController extends Controller
     {
         $data = [];
         foreach ($services as $service) {
-            $data[] = [
-                $invoiceNumber,
-                $adomInfo->ProviderCode,
-                $service->patient->documentType->Abbreviation,
-                $service->patient->Document,
-                $finalDate,
-                $service->AuthorizationNumber,
-                $service->service->Code,
-                1,
-                2,
-                4,
-                $service->Cie10,
-                '',
-                '',
-                '',
-                $service->Rate
-            ];
+            $authorizationNumbers = explode('-', $service->AuthorizationNumber);
+            foreach ($authorizationNumbers as $authorizationNumber) {
+                $data[] = [
+                    $invoiceNumber,
+                    $adomInfo->ProviderCode,
+                    $service->patient->documentType->Abbreviation,
+                    $service->patient->Document,
+                    $finalDate,
+                    $authorizationNumber,
+                    $service->service->Code,
+                    1,
+                    2,
+                    4,
+                    $service->Cie10,
+                    '',
+                    '',
+                    '',
+                    $service->Rate
+                ];
+            }
+
         }
         return $data;
     }

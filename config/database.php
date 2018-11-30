@@ -77,7 +77,7 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'options' => [
-                PDO::ATTR_TIMEOUT => 500
+//                PDO::ATTR_TIMEOUT => 500
             ]
         ],
 

@@ -80,4 +80,20 @@ class PatientService extends Model
     {
         return $this->hasMany('App\ServiceDetail', 'AssignServiceId');
     }
+
+    public static function updateAuthorizationNumber($id)
+    {
+        $authorizationNumbers = ServiceDetail::select('AuthorizationNumber')
+            ->where('AssignServiceId', $id)
+            ->groupBy('AuthorizationNumber')
+            ->get()
+            ->map( function ($visit) {
+                return $visit->AuthorizationNumber;
+            })->toArray();
+
+        $authorizationNumbers = implode('-', $authorizationNumbers);
+
+        PatientService::where('AssignServiceId', $id)
+            ->update(['AuthorizationNumber' => $authorizationNumbers]);
+    }
 }

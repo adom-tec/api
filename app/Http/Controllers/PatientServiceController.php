@@ -115,9 +115,13 @@ class PatientServiceController extends Controller
         $FinalDate = Carbon::createFromFormat('Y-m-d', $FinalDate)->format('Y-d-m');
         $sql = "exec sas.CreateAssignServiceAndDetails ${patient}, '${AuthorizationNumber}', '${Validity}', '${ApplicantName}', ${ServiceId}, ${Quantity}, '${InitialDate}', '${FinalDate}', ${ServiceFrecuencyId}, ${ProfessionalId}, ${CoPaymentAmount}, ${CoPaymentFrecuencyId}, ${Consultation}, ${External}, 1, '${Observation}', '${ContractNumber}', '${Cie10}', '${DescriptionCie10}', ${PlanEntityId}, ${EntityId}, ${AssignedBy}";
         $patientService = \DB::select(\DB::raw($sql))[0]->AssignServiceId;
+        ServiceDetail::where('AssignServiceId', $patientService)
+            ->update(['AuthorizationNumber' => $AuthorizationNumber]);
+
         $patientService = PatientService::with(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService'])
             ->findOrFail($patientService);
-	$service = Service::findOrFail($ServiceId);
+
+	    $service = Service::findOrFail($ServiceId);
         if ($ProfessionalId != -1 && $service->ServiceTypeId != 3) {
             $professional = Professional::findOrFail($ProfessionalId);
             $name = $professional->user->FirstName . ' ';
