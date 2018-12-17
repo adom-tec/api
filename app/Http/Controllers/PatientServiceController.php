@@ -185,7 +185,7 @@ class PatientServiceController extends Controller
             'EntityId' => 'exists:sqlsrv.cfg.Entities,EntityId',
             'PlanEntityId' => 'exists:sqlsrv.cfg.PlansEntity,PlanEntityId',
         ]);
-        $patientService->fill($request->all());
+        $patientService->fill($request->except('AuthorizationNumber'));
         $patientService->load(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService']);
         $patientService->save();
         return response()->json($patientService, 200);

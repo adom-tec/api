@@ -41,8 +41,8 @@ class RipsController extends Controller
         }
 
         return $services->get()->map(function ($service) {
-	    $service->InitialDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)->min('DateVisit');
-	    $service->FinalDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)->max('DateVisit');
+            $service->InitialDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)->min('DateVisit');
+            $service->FinalDate = ServiceDetail::where('AssignServiceId', $service->AssignServiceId)->max('DateVisit');
 	    return $service;
 	});
     } 
@@ -91,13 +91,16 @@ class RipsController extends Controller
             $i++;
         }
         extract($request->except('services'));
-        $usData = $this->getUsData($services, $adomInfo);
-        $acData = $this->getAcData($services, $adomInfo, $InvoiceNumber);
         $finalDate = Carbon::createFromFormat('Y-m-d', $request->input('InvoiceDate'))->format('d/m/Y');
         $servicesAp = $services->filter(function ($service) {
             return $service->service->ClassificationId == 2;
         });
 
+        $servicesAc = $services->filter(function ($service) {
+            return $service->service->ClassificationId != 2;
+        });
+        $usData = $this->getUsData($services, $adomInfo);
+        $acData = $this->getAcData($servicesAc, $adomInfo, $InvoiceNumber);
         $apData = $this->getApData($servicesAp, $adomInfo, $InvoiceNumber, $finalDate);
         $atData = $this->getAtData($services, $adomInfo, $InvoiceNumber);
         $afData = $this->getAfData($services->toArray(), $adomInfo, $InvoiceNumber, $InvoiceDate, $CopaymentAmount, $NetWorth, $acData);
@@ -197,8 +200,8 @@ class RipsController extends Controller
                 $date,
                 $detail->AuthorizationNumber,
                 $service->service->Code,
-                1013,
-                $service->External,
+                10,
+                13,
                 $service->Cie10,
                 '',
                 '',
@@ -216,27 +219,32 @@ class RipsController extends Controller
     private function getApData($services, $adomInfo, $invoiceNumber, $finalDate)
     {
         $data = [];
-        foreach ($services as $service) {
-            $authorizationNumbers = explode('-', $service->AuthorizationNumber);
-            foreach ($authorizationNumbers as $authorizationNumber) {
-                $data[] = [
-                    $invoiceNumber,
-                    $adomInfo->ProviderCode,
-                    $service->patient->documentType->Abbreviation,
-                    $service->patient->Document,
-                    $finalDate,
-                    $authorizationNumber,
-                    $service->service->Code,
-                    1,
-                    2,
-                    4,
-                    $service->Cie10,
-                    '',
-                    '',
-                    '',
-                    $service->Rate
-                ];
-            }
+        $servicesId = array_column($services->toArray(), 'AssignServiceId');
+        $details = ServiceDetail::whereIn('AssignServiceId', $servicesId)
+            ->where('StateId', 2)
+            ->orderBy('DateVisit')
+            ->with('service')
+            ->get();
+        foreach ($details as $detail) {
+            $service = $detail->service;
+            $date = Carbon::createFromFormat('Y-m-d', $detail->DateVisit)->format('d/m/Y');
+            $data[] = [
+                $invoiceNumber,
+                $adomInfo->ProviderCode,
+                $service->patient->documentType->Abbreviation,
+                $service->patient->Document,
+                $date,
+                $detail->AuthorizationNumber,
+                '',
+                1,
+                2,
+                4,
+                $service->Cie10,
+                '',
+                '',
+                '',
+                $service->Rate
+            ];
 
         }
         return $data;
@@ -277,31 +285,31 @@ class RipsController extends Controller
         $identifiers = [];
         $cant = count($services);
         $invoiceDate = Carbon::createFromFormat('Y-m-d', $invoiceDate)->format('d/m/Y');
-	$entity = $services[0]['entity'];
-	$otherValuesReceived = array_sum(array_column($services, 'OtherValuesReceived'));
+        $entity = $services[0]['entity'];
+        $otherValuesReceived = array_sum(array_column($services, 'OtherValuesReceived'));
+        $servicesId = array_column($services, 'AssignServiceId');
+        $initDate = ServiceDetail::whereIn('AssignServiceId', $servicesId)->where('StateId', 2)->min('DateVisit');
+        $finalDate = ServiceDetail::whereIn('AssignServiceId', $servicesId)->where('StateId', 2)->max('DateVisit');
 
-	$initDate = $acData[0][4];
-	$finalDate = $acData[count($acData) - 1][4];
-
-	$data[] = [
-	    $adomInfo->ProviderCode,
-	    $adomInfo->BusinessName,
-	    $adomInfo->IdentificationType,
-	    $adomInfo->IdentificationNumber,
-	    $invoiceNumber,
-	    $invoiceDate,
-	    $initDate,
-	    $finalDate,
-	    $entity['Code'],
-	    $entity['Name'],
-	    '',
-	    '',
-	    '',
-	    $copayment,
-	    '0',
-	    $otherValuesReceived,
-	    $netValue
-	]; 
+        $data[] = [
+            $adomInfo->ProviderCode,
+            $adomInfo->BusinessName,
+            $adomInfo->IdentificationType,
+            $adomInfo->IdentificationNumber,
+            $invoiceNumber,
+            $invoiceDate,
+            Carbon::createFromFormat('Y-m-d', $initDate)->format('d/m/Y'),
+            Carbon::createFromFormat('Y-m-d', $finalDate)->format('d/m/Y'),
+            $entity['Code'],
+            $entity['Name'],
+            '',
+            '',
+            '',
+            $copayment,
+            '0',
+            $otherValuesReceived,
+            $netValue
+        ];
 
 
         return $data;
