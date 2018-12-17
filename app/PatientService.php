@@ -85,6 +85,7 @@ class PatientService extends Model
     {
         $authorizationNumbers = ServiceDetail::select('AuthorizationNumber')
             ->where('AssignServiceId', $id)
+            ->whereNotNull('AuthorizationNumber')
             ->groupBy('AuthorizationNumber')
             ->get()
             ->map( function ($visit) {
