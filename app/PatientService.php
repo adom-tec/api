@@ -94,7 +94,9 @@ class PatientService extends Model
 
         $authorizationNumbers = implode('-', $authorizationNumbers);
 
-        PatientService::where('AssignServiceId', $id)
-            ->update(['AuthorizationNumber' => $authorizationNumbers]);
+		if (!empty($authorizationNumbers)) {
+        	PatientService::where('AssignServiceId', $id)
+            	->update(['AuthorizationNumber' => $authorizationNumbers]);
+		}
     }
 }
