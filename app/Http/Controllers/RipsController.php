@@ -132,7 +132,6 @@ class RipsController extends Controller
         \Storage::disk('rips')->deleteDirectory($generatedRip->GeneratedRipsId);
 
         return \Response::make($content, 200);
-
     }
 
     private function getUsData($services, $adomInfo) {
@@ -191,7 +190,12 @@ class RipsController extends Controller
         foreach ($details as $detail) {
             $date = Carbon::createFromFormat('Y-m-d', $detail->DateVisit)->format('d/m/Y');
             $service = $detail->service;
-            $net = $service->Rate - $detail->ReceivedAmount;
+            $rate = PlanService::select('Rate')
+                ->where('ServiceId', $service->ServiceId)
+                ->where('PlanEntityId', $service->PlanEntityId)
+                ->first()->Rate;
+
+            $net = $rate - $detail->ReceivedAmount;
             $data[] = [
                 $invoiceNumber,
                 $adomInfo->ProviderCode,
@@ -207,9 +211,9 @@ class RipsController extends Controller
                 '',
                 '',
                 2,
-                $service->Rate,
-                $service->CoPaymentAmount,
-                $net
+                (float)$rate,
+                (float)$service->CoPaymentAmount,
+                (float)$net
             ];
         }
 
@@ -227,6 +231,10 @@ class RipsController extends Controller
             ->get();
         foreach ($details as $detail) {
             $service = $detail->service;
+            $rate = PlanService::select('Rate')
+                ->where('ServiceId', $service->ServiceId)
+                ->where('PlanEntityId', $service->PlanEntityId)
+                ->first()->Rate;
             $date = Carbon::createFromFormat('Y-m-d', $detail->DateVisit)->format('d/m/Y');
             $data[] = [
                 $invoiceNumber,
@@ -243,7 +251,7 @@ class RipsController extends Controller
                 '',
                 '',
                 '',
-                $service->Rate
+                (float)$rate
             ];
 
         }
@@ -305,10 +313,10 @@ class RipsController extends Controller
             '',
             '',
             '',
-            $copayment,
+            (float)$copayment,
             '0',
             $otherValuesReceived,
-            $netValue
+            (float)$netValue
         ];
 
 
@@ -370,7 +378,9 @@ class RipsController extends Controller
     private function cleanDatum($row)
     {
         for ($i = 0; $i < count($row); $i++) {
-            $row[$i] = $this->clean($row[$i]);
+            if (!is_numeric($row[$i])) {
+                $row[$i] = $this->clean($row[$i]);
+            }
         }
         return $row;
     }
