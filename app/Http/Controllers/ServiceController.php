@@ -30,9 +30,17 @@ class ServiceController extends Controller
             'ServiceTypeId' => 'required|exists:sqlsrv.cfg.ServiceType,Id',
             'HoursToInvest' => 'required'
         ]);
-        $service = new Service($request->all());
+
+	$data = $request->all();
+
+	if ($data['ServiceTypeId'] != 2) {
+	    $data['InitTime'] = null;
+	}
+
+        $service = new Service($data);
         $service->save();
         $service->load(['classification', 'serviceType']);
+
         return response()->json($service, 201);
     }
 
