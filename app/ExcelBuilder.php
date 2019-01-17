@@ -18,7 +18,7 @@ class ExcelBuilder
     {
         $header = $this->header;
         $data = $this->data;
-        $this->excel = \Excel::create('Consolidado', function($excel) use ($header, $data) {
+        $this->excel = \Excel::create('Docuemnt', function($excel) use ($header, $data) {
             $excel->sheet('1', function($sheet) use ($header, $data) {
                 $sheet->row(1, $header);
                 $sheet->rows($data);

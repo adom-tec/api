@@ -66,19 +66,18 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::get('professionalrates', 'ProfesionalRateController@index');
         Route::get('getchartdata/{service}', 'PatientServiceController@getChartData');
         Route::get('irregularservices', 'PatientServiceController@getIrregularServices');
+        Route::get('reports/irregularservices', 'PatientServiceController@getIrregularServicesXLS');
         Route::get('professionals/-1/services', 'PatientServiceController@getServicesWithoutProfessional');
         Route::get('reports/consolidado', 'ReportController@getConsolidadoReport');
         Route::get('reports/detalle', 'ReportController@getDetalleReport');
         Route::get('reports/payment', 'ReportController@getPaymentReport');
         Route::get('reports/copayment', 'ReportController@getCopaymentReport');
         Route::get('reports/nomina', 'ReportController@getNominaReport');
-	    Route::get('reports/professional', 'ReportController@getProfessionalReport');
-	    Route::get('reports/hoursnursing', 'ReportController@getHoursWorkedReport');
+	Route::get('reports/professional', 'ReportController@getProfessionalReport');
         Route::get('rips/services', 'RipsController@getServices');
         Route::post('rips/services', 'RipsController@generateRips');
         Route::get('contracttypes', 'ProfessionalController@getContractTypes');
-        Route::resource('workschedules', 'WorkScheduleController');
-        Route::resource('workscheduleranges', 'WorkScheduleRangeController');
+        Route::resource('reasonsuspensionservice', 'ReasonSuspensionServiceController');
     });
 });
 

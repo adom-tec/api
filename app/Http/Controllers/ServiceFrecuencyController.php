@@ -16,7 +16,7 @@ class ServiceFrecuencyController extends Controller
 
     public function index()
     {
-        return ServiceFrecuency::all();
+        return ServiceFrecuency::where('Active', 1)->get();
     }
 
     public function store(Request $request)

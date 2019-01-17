@@ -67,7 +67,7 @@ class ServiceDetailController extends Controller
         
         $paymentType = $detail['PaymentType'] ? $PaymentType : $serviceDetail->PaymentType;
         $receivedAmount = $detail['ReceivedAmount'] >= 0 ? $ReceivedAmount : $serviceDetail->ReceivedAmount;
-        $otherAmount = $detail['OtherAmount'] >= 0 ? $OtherAmount : $serviceDetail->OtherAmount;
+        $otherAmount = $detail['OtherAmount'] ? $OtherAmount : $serviceDetail->OtherAmount;
         $observation = $detail['Observation'] ? $Observation : $serviceDetail->Observation;
         $pin = $detail['Pin'] ? $Pin : $serviceDetail->Pin;
         $verified = $detail['Verified'] ? $Verified : $serviceDetail->Verified;
@@ -91,6 +91,13 @@ class ServiceDetailController extends Controller
 
         $serviceDetail->professional_rate_id = $detail['professional_rate_id'] ? $detail['professional_rate_id'] : $serviceDetail->professional_rate_id;
         $serviceDetail->AuthorizationNumber = $detail['AuthorizationNumber'] ? $detail['AuthorizationNumber'] : $serviceDetail->AuthorizationNumber;
+        if (isset($InitDateAuthorizationNumber)) {
+            $serviceDetail->InitDateAuthorizationNumber = $InitDateAuthorizationNumber;
+        }
+        if (isset($FinalDateAuthorizationNumber)) {
+            $serviceDetail->FinalDateAuthorizationNumber = $FinalDateAuthorizationNumber;
+        }
+
         if ($detail['StateId'] != 3) {
             DetailCancelReason::where('AssignServiceDetailId', $serviceDetail->AssignServiceDetailId)
                 ->delete();

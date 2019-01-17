@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\ExcelBuilder;
 use App\Mail\ServiceAssigned;
 use Illuminate\Http\Request;
 use App\PatientService;
@@ -115,8 +116,20 @@ class PatientServiceController extends Controller
         $FinalDate = Carbon::createFromFormat('Y-m-d', $FinalDate)->format('Y-d-m');
         $sql = "exec sas.CreateAssignServiceAndDetails ${patient}, '${AuthorizationNumber}', '${Validity}', '${ApplicantName}', ${ServiceId}, ${Quantity}, '${InitialDate}', '${FinalDate}', ${ServiceFrecuencyId}, ${ProfessionalId}, ${CoPaymentAmount}, ${CoPaymentFrecuencyId}, ${Consultation}, ${External}, 1, '${Observation}', '${ContractNumber}', '${Cie10}', '${DescriptionCie10}', ${PlanEntityId}, ${EntityId}, ${AssignedBy}";
         $patientService = \DB::select(\DB::raw($sql))[0]->AssignServiceId;
+
+        $updates = [
+            'AuthorizationNumber' => $AuthorizationNumber
+        ];
+
+        if ($request->input('InitDateAuthorizationNumber')) {
+            $updates['InitDateAuthorizationNumber'] = $request->input('InitDateAuthorizationNumber');
+        }
+
+        if ($request->input('FinalDateAuthorizationNumber')) {
+            $updates['FinalDateAuthorizationNumber'] = $request->input('FinalDateAuthorizationNumber');
+        }
         ServiceDetail::where('AssignServiceId', $patientService)
-            ->update(['AuthorizationNumber' => $AuthorizationNumber]);
+            ->update($updates);
 
         $patientService = PatientService::with(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService'])
             ->findOrFail($patientService);
@@ -249,6 +262,32 @@ class PatientServiceController extends Controller
     public function getIrregularServices()
     {
         return \DB::select("exec sas.GetIrregularServices");
+    }
+
+    public function getIrregularServicesXLS()
+    {
+        $data = \DB::select("exec sas.GetIrregularServices");
+        $data =json_decode(json_encode($data), true);
+        if ($data) {
+            $rows = [];
+            $header = [
+                'Paciente',
+                'Servicio',
+                'Motivo'
+            ];
+
+            foreach ($data as $datum) {
+                $rows[] = [
+                  $datum['PatientName'],
+                  $datum['ServiceName'],
+                  $datum['Reason']
+                ];
+            }
+            $excel = new ExcelBuilder($header, $rows);
+            $excel->build();
+            return $excel->get();
+        }
+
     }
 
     public function getServicesWithoutProfessional()

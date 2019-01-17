@@ -10,4 +10,8 @@ class ServiceFrecuency extends Model
     protected $primaryKey = 'ServiceFrecuencyId';
 
     public $timestamps = false;
+
+    protected $hidden = [
+        'Active'
+    ];
 }
