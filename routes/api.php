@@ -73,11 +73,12 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::get('reports/payment', 'ReportController@getPaymentReport');
         Route::get('reports/copayment', 'ReportController@getCopaymentReport');
         Route::get('reports/nomina', 'ReportController@getNominaReport');
-	Route::get('reports/professional', 'ReportController@getProfessionalReport');
+	    Route::get('reports/professional', 'ReportController@getProfessionalReport');
         Route::get('rips/services', 'RipsController@getServices');
         Route::post('rips/services', 'RipsController@generateRips');
         Route::get('contracttypes', 'ProfessionalController@getContractTypes');
         Route::resource('reasonsuspensionservice', 'ReasonSuspensionServiceController');
+        Route::resource('reasonchangeinitdate', 'ReasonChangeInitDateController');
     });
 });
 
