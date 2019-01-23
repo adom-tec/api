@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\DetailCancelReason;
 use App\PatientService;
 use App\Professional;
+use App\ReasonSuspensionServiceDetail;
 use Illuminate\Http\Request;
 use App\ServiceDetail;
 use Carbon\Carbon;
@@ -30,7 +31,7 @@ class ServiceDetailController extends Controller
             }
         }
         return $query->orderBy('Consecutive', 'asc')
-            ->with(['professional.user', 'state', 'detailCancelReason.cancelReason'])
+            ->with(['professional.user', 'state', 'detailCancelReason.cancelReason', 'detailSuspensionReason.suspensionReason'])
             ->get();
     }
 
@@ -91,16 +92,27 @@ class ServiceDetailController extends Controller
 
         $serviceDetail->professional_rate_id = $detail['professional_rate_id'] ? $detail['professional_rate_id'] : $serviceDetail->professional_rate_id;
         $serviceDetail->AuthorizationNumber = $detail['AuthorizationNumber'] ? $detail['AuthorizationNumber'] : $serviceDetail->AuthorizationNumber;
-        if (isset($InitDateAuthorizationNumber)) {
-            $serviceDetail->InitDateAuthorizationNumber = $InitDateAuthorizationNumber;
-        }
-        if (isset($FinalDateAuthorizationNumber)) {
-            $serviceDetail->FinalDateAuthorizationNumber = $FinalDateAuthorizationNumber;
-        }
+//        if (isset($InitDateAuthorizationNumber)) {
+//            $serviceDetail->InitDateAuthorizationNumber = $InitDateAuthorizationNumber;
+//        }
+//        if (isset($FinalDateAuthorizationNumber)) {
+//            $serviceDetail->FinalDateAuthorizationNumber = $FinalDateAuthorizationNumber;
+//        }
 
-        if ($detail['StateId'] != 3) {
+        if ($state != 3) {
             DetailCancelReason::where('AssignServiceDetailId', $serviceDetail->AssignServiceDetailId)
                 ->delete();
+
+            if ($state == 4) {
+                PatientService::where('AssignServiceId', $serviceDetail->AssignServiceId)
+                    ->update(['StateId' => 4]);
+            }
+
+        }
+        if ($state != 4) {
+            ReasonSuspensionServiceDetail::where('AssignServiceDetailId', $serviceDetail->AssignServiceDetailId)
+                ->delete();
+
         }
         $serviceDetail->save();
         PatientService::updateAuthorizationNumber($serviceDetail->AssignServiceId);

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\ExcelBuilder;
+use App\Mail\ChangedInitialDate;
 use App\Mail\ServiceAssigned;
+use App\ReasonChangeInitDate;
+use App\ServiceObservation;
 use Illuminate\Http\Request;
 use App\PatientService;
 use App\Patient;
@@ -121,18 +124,34 @@ class PatientServiceController extends Controller
             'AuthorizationNumber' => $AuthorizationNumber
         ];
 
-        if ($request->input('InitDateAuthorizationNumber')) {
-            $updates['InitDateAuthorizationNumber'] = $request->input('InitDateAuthorizationNumber');
-        }
-
-        if ($request->input('FinalDateAuthorizationNumber')) {
-            $updates['FinalDateAuthorizationNumber'] = $request->input('FinalDateAuthorizationNumber');
-        }
+//        if ($request->input('InitDateAuthorizationNumber')) {
+//            $updates['InitDateAuthorizationNumber'] = $request->input('InitDateAuthorizationNumber');
+//        }
+//
+//        if ($request->input('FinalDateAuthorizationNumber')) {
+//            $updates['FinalDateAuthorizationNumber'] = $request->input('FinalDateAuthorizationNumber');
+//        }
         ServiceDetail::where('AssignServiceId', $patientService)
             ->update($updates);
 
         $patientService = PatientService::with(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService'])
             ->findOrFail($patientService);
+
+        $change = false;
+
+        if ($request->input('InitDateAuthorizationNumber')) {
+            $patientService->InitDateAuthorizationNumber = $request->input('InitDateAuthorizationNumber');
+            $change = true;
+        }
+
+        if ($request->input('FinalDateAuthorizationNumber')) {
+            $patientService->FinalDateAuthorizationNumber = $request->input('FinalDateAuthorizationNumber');
+            $change = true;
+        }
+
+        if ($change) {
+            $patientService->save();
+        }
 
 	    $service = Service::findOrFail($ServiceId);
         if ($ProfessionalId != -1 && $service->ServiceTypeId != 3) {
@@ -198,9 +217,48 @@ class PatientServiceController extends Controller
             'EntityId' => 'exists:sqlsrv.cfg.Entities,EntityId',
             'PlanEntityId' => 'exists:sqlsrv.cfg.PlansEntity,PlanEntityId',
         ]);
-        $patientService->fill($request->except('AuthorizationNumber'));
+        if ($request->input('InitialDate') && $request->input('InitialDate') != $patientService->InitialDate) {
+            $request->validate([
+                'FinalDate' => 'required',
+                'ReasonChangeInitDateId' => 'required|exists:sqlsrv.sas.ReasonChangeInitDate,id'
+            ]);
+            $reasonChangeInitDate = ReasonChangeInitDate::findOrFail($request->input('ReasonChangeInitDateId'));
+            $countCompletedVisitis = ServiceDetail::where('AssignServiceId', $id)
+                ->where('StateId', 2)
+                ->count();
+            if ($countCompletedVisitis) {
+                return response()->json([
+                    'message' => 'Error, No se puede cambiar la fecha de inicio porque ya hay visitas realizadas'
+                ], 400);
+            }
+
+        }
+        $patientService->fill($request->except(['AuthorizationNumber', 'ReasonChangeInitDateId']));
         $patientService->load(['patient', 'service', 'serviceFrecuency', 'professional', 'coPaymentFrecuency', 'state', 'entity', 'planService']);
         $patientService->save();
+        if (isset($reasonChangeInitDate)) {
+            $serviceObservation = new ServiceObservation();
+            $serviceObservation->UserId = $request->user()->UserId;
+            $serviceObservation->AssignServiceId = $id;
+            $serviceObservation->Description = 'Fecha de inicio del servicio modificada por razón: ' . $reasonChangeInitDate->name;
+            $serviceObservation->save();
+
+            if ($patientService->ProfessionalId != -1) {
+                $professional = Professional::findOrFail($patientService->ProfessionalId);
+                $name = $professional->user->FirstName . ' ';
+                if ($professional->user->SecondName) {
+                    $name .= $professional->user->SecondName . ' ';
+                }
+                $name .= $professional->user->Surname . ' ';
+                if ($professional->user->SecondSurname) {
+                    $name .= $professional->user->SecondSurname;
+                }
+                $service = PatientService::findOrFail($id);
+                \Mail::to($professional->user->Email)->send(new ChangedInitialDate($name, $service));
+
+            }
+        }
+
         return response()->json($patientService, 200);
     }
 
@@ -262,6 +320,27 @@ class PatientServiceController extends Controller
     public function getIrregularServices()
     {
         return \DB::select("exec sas.GetIrregularServices");
+    }
+
+    public function getSuspendedServices()
+    {
+        $data = [];
+        $services = PatientService::select('AssignServiceId', 'PatientId', 'ServiceId')
+            ->where('StateId', 4)
+            ->with(['patient', 'service'])
+            ->get();
+        foreach ($services as $service) {
+
+            $data[] = [
+                'AssignServiceId' => $service->AssignServiceId,
+                'PatientId' => $service->PatientId,
+                'PatientName' => $service->patient->NameCompleted,
+                'ServiceName' => $service->service->Name
+            ];
+        }
+
+        return $data;
+
     }
 
     public function getIrregularServicesXLS()

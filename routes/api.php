@@ -66,6 +66,7 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::get('professionalrates', 'ProfesionalRateController@index');
         Route::get('getchartdata/{service}', 'PatientServiceController@getChartData');
         Route::get('irregularservices', 'PatientServiceController@getIrregularServices');
+        Route::get('suspendedservices', 'PatientServiceController@getSuspendedServices');
         Route::get('reports/irregularservices', 'PatientServiceController@getIrregularServicesXLS');
         Route::get('professionals/-1/services', 'PatientServiceController@getServicesWithoutProfessional');
         Route::get('reports/consolidado', 'ReportController@getConsolidadoReport');
@@ -79,6 +80,7 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::get('contracttypes', 'ProfessionalController@getContractTypes');
         Route::resource('reasonsuspensionservice', 'ReasonSuspensionServiceController');
         Route::resource('reasonchangeinitdate', 'ReasonChangeInitDateController');
+        Route::post('reasonsuspensionservicedetail', 'ReasonSuspensionServiceDetailController@store');
     });
 });
 

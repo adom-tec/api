@@ -28,6 +28,11 @@ class ServiceDetail extends Model
         return $this->hasOne('App\DetailCancelReason', 'AssignServiceDetailId');
     }
 
+    public function detailSuspensionReason()
+    {
+        return $this->hasOne('App\ReasonSuspensionServiceDetail', 'AssignServiceDetailId');
+    }
+
     public function service()
     {
         return $this->belongsTo('App\PatientService', 'AssignServiceId');

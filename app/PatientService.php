@@ -13,7 +13,8 @@ class PatientService extends Model
     "Quantity","InitialDate","FinalDate","ServiceFrecuencyId","ProfessionalId","CoPaymentAmount",
     "CoPaymentFrecuencyId","Consultation","External","StateId","Observation","ContractNumber",
     "EntityId","PlanEntityId", "Cie10","DescriptionCie10","AssignedBy","CopaymentStatus","TotalCopaymentReceived",
-    "OtherValuesReceived","DeliveredCopayments","Discounts","InvoiceNumber","DelieveredCopaymentDate", "ReceivedBy"];
+    "OtherValuesReceived","DeliveredCopayments","Discounts","InvoiceNumber","DelieveredCopaymentDate", "ReceivedBy",
+    'InitDateAuthorizationNumber', 'FinalDateAuthorizationNumber'];
     protected $appends = ['countMadeVisits'];
 
     const CREATED_AT = 'RecordDate';
@@ -94,9 +95,7 @@ class PatientService extends Model
 
         $authorizationNumbers = implode('-', $authorizationNumbers);
 
-		if (!empty($authorizationNumbers)) {
-        	PatientService::where('AssignServiceId', $id)
-            	->update(['AuthorizationNumber' => $authorizationNumbers]);
-		}
+        PatientService::where('AssignServiceId', $id)
+            ->update(['AuthorizationNumber' => $authorizationNumbers]);
     }
 }
