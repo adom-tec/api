@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Patient;
 use App\Professional;
+use App\ServiceDetail;
+use App\User;
+use App\WorkScheduleRange;
 use Illuminate\Http\Request;
 use App\ExcelBuilder;
 use App\DetailAnswer;
@@ -732,5 +736,537 @@ class ReportController extends Controller
 	$excel = new ExcelBuilder($header, $data);
         $excel->build();
         return $excel->get();
+    }
+
+    public function getHoursWorkedReport(Request $request)
+    {
+        $request->validate([
+            'InitDate' => 'required',
+            'FinalDate' => 'required',
+            'ReportType' => 'required'
+        ]);
+
+        $services = ServiceDetail::select('sas.AssignServiceDetails.*')
+            ->join('sas.AssignService', 'sas.AssignServiceDetails.AssignServiceId', '=', 'sas.AssignService.AssignServiceId')
+            ->join('cfg.Services', function ($join) {
+                $join->on('sas.AssignService.ServiceId', '=', 'cfg.Services.ServiceId')
+                    ->where('cfg.Services.ServiceTypeId', 2)
+                    ->whereNotNull('cfg.Services.InitTime')
+                    ->whereNotNull('cfg.Services.BreakTime');
+            })
+            ->where('sas.AssignServiceDetails.ProfessionalId', '<>', -1);
+
+        if ($request->input('ProfessionalId')) {
+            $services->where('sas.AssignServiceDetails.ProfessionalId', $request->input('ProfessionalId'));
+        }
+
+        if ($request->input('StateId')) {
+            $services->where('sas.AssignServiceDetails.StateId', $request->input('StateId'));
+        }
+
+        if ($request->input('ContractTypeId')) {
+            $contractTypeId = $request->input('ContractTypeId');
+            $services->join('cfg.Professionals', function ($join) use ($contractTypeId) {
+               $join->on('sas.AssignServiceDetails.ProfessionalId', '=', 'cfg.Professionals.ProfessionalId')
+                    ->where('cfg.Professionals.ContractTypeId', $contractTypeId);
+            });
+        }
+        $initDate = Carbon::createFromFormat('d-m-Y', $request->input('InitDate'))->format('Y-m-d');
+        $finalDate = Carbon::createFromFormat('d-m-Y', $request->input('FinalDate'))->format('Y-m-d');
+        $services->whereBetween('sas.AssignServiceDetails.DateVisit', [$initDate, $finalDate])
+            ->orderBy('sas.AssignServiceDetails.DateVisit', 'asc');
+        $services = $services->get();
+
+        $hours = [];
+        $ranges = WorkScheduleRange::orderBy('WorkScheduleId')->get();
+
+        if ($request->input('ReportType') == 1) {
+            foreach ($services as $service) {
+                if (!array_key_exists($service->ProfessionalId, $hours)) {
+                    $hours[$service->ProfessionalId] = [
+                        'basic' => [
+                            'normal' => 0,
+                            'holiday' => 0,
+                            'breakTime' => 0,
+                        ],
+                        'extra_basic' => [
+                            'normal' => 0,
+                            'holiday' => 0
+                        ],
+                        'night' => [
+                            'normal' => 0,
+                            'holiday' => 0,
+                            'breakTime' => 0,
+                        ],
+                        'extra_night' => [
+                            'normal' => 0,
+                            'holiday' => 0
+                        ],
+                        'workedDays' => [],
+                        'attendedShifts' => 0
+                    ];
+                }
+
+                $serviceHoursTemp = [
+                    'basic' => [
+                        'normal' => 0,
+                        'holiday' => 0
+                    ],
+                    'night' => [
+                        'normal' => 0,
+                        'holiday' => 0
+                    ]
+                ];
+                $dataService = $service->service->service;
+                $initTime = substr($dataService->InitTime, 0, 8);
+                $breakTime = $dataService->BreakTime;
+                $dateInit = $service->DateVisit;
+                $final = Carbon::createFromFormat('Y-m-d H:i:s', $dateInit . ' ' .$initTime)->addHours($dataService->HoursToInvest);
+                $finalDate = $final->format('Y-m-d');
+                $initTime = (int) substr($initTime, 0, 2);
+                $hour = $initTime;
+
+                for ($i = $initTime; $i < $initTime + $dataService->HoursToInvest; $i++) {
+                    if ($i == 24) {
+                        $hour = 0;
+                    }
+
+                    foreach ($ranges as $range) {
+                        $initRange = (int) substr($range->Start, 0, 2);
+                        $finalRange = (int) substr($range->End, 0, 2);
+
+                        if (($hour >= $initRange && $hour < $finalRange) ||
+                            ($hour >= $initRange && $hour > $finalRange && $initRange > $finalRange) ||
+                            ($hour < $initRange && $hour < $finalRange && $initRange > $finalRange)) {
+
+                            $finalDateIsHoliday = $this->isHoliday($finalDate);
+                            $initDateIsHoliday = $this->isHoliday($dateInit);
+
+                            if ($hour < $initTime) {
+                                $isHoliday = $finalDateIsHoliday;
+                            } else {
+                                $isHoliday = $initDateIsHoliday;
+                            }
+
+                            if ($range->WorkScheduleId == 1) {
+                                $workSchedule = 'basic';
+                            } elseif ($range->WorkScheduleId == 2) {
+                                $workSchedule = 'extra_basic';
+                            } elseif ($range->WorkScheduleId == 3) {
+                                $workSchedule = 'night';
+                            } elseif ($range->WorkScheduleId == 4) {
+                                $workSchedule = 'extra_night';
+                            }
+
+                            $day = $isHoliday ? 'holiday' : 'normal';
+                            $hours[$service->ProfessionalId][$workSchedule][$day]++;
+                            $hour++;
+
+                            if ($workSchedule == 'basic' || $workSchedule == 'night') {
+                                $serviceHoursTemp[$workSchedule][$day]++;
+                            }
+
+                            break;
+                        }
+                    }
+                }
+
+                $hours[$service->ProfessionalId]['attendedShifts']++;
+                if (!in_array($dateInit, $hours[$service->ProfessionalId]['workedDays'])) {
+                    $hours[$service->ProfessionalId]['workedDays'][] = $dateInit;
+                }
+
+                if (!in_array($finalDate, $hours[$service->ProfessionalId]['workedDays'])) {
+                    $hours[$service->ProfessionalId]['workedDays'][] = $finalDate;
+                }
+
+                if ($dataService->BreakTime && $dataService->HoursToInvest >= 10) {
+                    if ($dataService->HoursToInvest >= 10 && $dataService->HoursToInvest <= 12) {
+                        if (!$initDateIsHoliday && !$finalDateIsHoliday) {
+                            if ($serviceHoursTemp['basic']['normal'] > $serviceHoursTemp['night']['normal']) {
+                                $hours[$service->ProfessionalId]['basic']['normal'] -= $dataService->BreakTime;
+                                $hours[$service->ProfessionalId]['basic']['breakTime'] += $dataService->BreakTime;
+                            } else {
+                                $hours[$service->ProfessionalId]['night']['normal'] -= $dataService->BreakTime;
+                                $hours[$service->ProfessionalId]['night']['breakTime'] += $dataService->BreakTime;
+                            }
+                        } else if ($initDateIsHoliday && $finalDateIsHoliday && $dateInit == $finalDate) {
+                            $hours[$service->ProfessionalId]['basic']['holiday'] -= $dataService->BreakTime;
+                            $hours[$service->ProfessionalId]['basic']['breakTime'] += $dataService->BreakTime;
+                        } else if (!$initDateIsHoliday && $finalDateIsHoliday) {
+                            if ($breakTime > 1) {
+                                $hours[$service->ProfessionalId]['night']['normal'] -= 1;
+                                $hours[$service->ProfessionalId]['night']['holiday'] -= 1;
+                                $hours[$service->ProfessionalId]['night']['breakTime'] += 2;
+                            } else {
+                                $hours[$service->ProfessionalId]['night']['normal'] -= 1;
+                                $hours[$service->ProfessionalId]['night']['breakTime'] += 1;
+                            }
+                        } else if (($initDateIsHoliday && !$finalDateIsHoliday) || ($initDateIsHoliday && $finalDateIsHoliday && $dateInit != $finalDate)) {
+                            if ($breakTime > 1) {
+                                if ($hours[$service->ProfessionalId]['basic']['holiday']) {
+                                    $hours[$service->ProfessionalId]['basic']['holiday'] -= 1;
+                                    $hours[$service->ProfessionalId]['basic']['breakTime'] += 1;
+                                    $hours[$service->ProfessionalId]['night']['holiday'] -= 1;
+                                    $hours[$service->ProfessionalId]['night']['breakTime'] += 1;
+                                } else {
+                                    $hours[$service->ProfessionalId]['night']['holiday'] -= 2;
+                                    $hours[$service->ProfessionalId]['night']['breakTime'] += 2;
+                                }
+                            } else {
+                                $hours[$service->ProfessionalId]['night']['holiday'] -= 1;
+                                $hours[$service->ProfessionalId]['night']['breakTime'] += 1;
+                            }
+                        }
+                    } elseif ($dataService->HoursToInvest == 24) {
+                        if (!$initDateIsHoliday && !$finalDateIsHoliday) {
+                            $hours[$service->ProfessionalId]['basic']['normal'] -= 2;
+                            $hours[$service->ProfessionalId]['night']['normal'] -= 2;
+                            $hours[$service->ProfessionalId]['basic']['breakTime'] += 2;
+                            $hours[$service->ProfessionalId]['night']['breakTime'] += 2;
+                        } elseif (!$initDateIsHoliday && $finalDateIsHoliday) {
+                            $hours[$service->ProfessionalId]['basic']['holiday'] -= 2;
+                            $hours[$service->ProfessionalId]['night']['normal'] -= 2;
+                            $hours[$service->ProfessionalId]['basic']['breakTime'] += 2;
+                            $hours[$service->ProfessionalId]['night']['breakTime'] += 2;
+                        } elseif ($initDateIsHoliday && $finalDateIsHoliday) {
+                            $hours[$service->ProfessionalId]['basic']['holiday'] -= 2;
+                            $hours[$service->ProfessionalId]['night']['holiday'] -= 2;
+                            $hours[$service->ProfessionalId]['basic']['breakTime'] += 2;
+                            $hours[$service->ProfessionalId]['night']['breakTime'] += 2;
+                        } elseif ($initDateIsHoliday && !$finalDateIsHoliday) {
+                            $hours[$service->ProfessionalId]['basic']['normal'] -= 2;
+                            $hours[$service->ProfessionalId]['night']['holiday'] -= 2;
+                            $hours[$service->ProfessionalId]['basic']['breakTime'] += 2;
+                            $hours[$service->ProfessionalId]['night']['breakTime'] += 2;
+                        }
+                    }
+                }
+            }
+
+            $header = [
+                'DOC. PROF.',
+                'NOMBRE DEL PROFESIONAL',
+                'ESPECIALIDAD',
+                'FECHA INGRESO',
+                'TIPO CONTRATO',
+                'DIAS TRABAJADOS',
+                'TURNOS ATENDIDOS',
+                'H. BÁSICA',
+                'H.E. DIA',
+                'H.E. NOC',
+                'H.E. DIA FEST.',
+                'H.E. NOC FEST',
+                'TOTAL H.E',
+                'TOTAL HORAS',
+                'H. RECARGO NOC',
+                'H. RECARGO DIA FEST',
+                'H. RECARGO NOC FEST',
+                'TOTAL RECARGOS',
+                'H. DESCANSO',
+                'TOTAL HORAS TRABAJADAS'
+            ];
+            $data = [];
+            foreach ($hours as $key => $value) {
+                $professional = Professional::findOrFail($key);
+
+                $name = $professional->user->FirstName . ' ';
+                if ($professional->user->SecondName) {
+                    $name .= $professional->user->SecondName . ' ';
+                }
+                $name .= $professional->user->Surname . ' ';
+                if ($professional->user->SecondSurname) {
+                    $name .= $professional->user->SecondSurname;
+                }
+                $totalExtraHours = $value['extra_basic']['normal'] + $value['extra_night']['normal'] +$value['extra_basic']['holiday'] + $value['extra_night']['holiday'];
+                $totalRecargos = $value['night']['normal'] + $value['basic']['holiday'] + $value['night']['holiday'];
+                $data[] = [
+                    $professional->Document,
+                    $name,
+                    $professional->specialty->Name,
+                    $professional->DateAdmission ? Carbon::createFromFormat('Y-m-d', substr($professional->DateAdmission, 0, 10))->format('d-m-Y') : '',
+                    $professional->contractType ? $professional->contractType->Name : '',
+                    count($value['workedDays']),
+                    $value['attendedShifts'],
+                    $value['basic']['normal'],
+                    $value['extra_basic']['normal'],
+                    $value['extra_night']['normal'],
+                    $value['extra_basic']['holiday'],
+                    $value['extra_night']['holiday'],
+                    $totalExtraHours,
+                    $value['basic']['normal'] + $totalExtraHours,
+                    $value['night']['normal'],
+                    $value['basic']['holiday'],
+                    $value['night']['holiday'],
+                    $totalRecargos,
+                    $value['basic']['breakTime'] + $value['night']['breakTime'],
+                    $value['basic']['normal'] + $totalExtraHours + $totalRecargos
+                ];
+            }
+
+            $excel = new ExcelBuilder($header, $data);
+            $excel->build();
+            return $excel->get();
+
+        } else {
+            foreach ($services as $service) {
+                if (!array_key_exists($service->AssignServiceDetailId, $hours)) {
+                    $hours[$service->AssignServiceDetailId] = [
+                        'basic' => [
+                            'normal' => 0,
+                            'holiday' => 0,
+                            'breakTime' => 0,
+                        ],
+                        'extra_basic' => [
+                            'normal' => 0,
+                            'holiday' => 0
+                        ],
+                        'night' => [
+                            'normal' => 0,
+                            'holiday' => 0,
+                            'breakTime' => 0,
+                        ],
+                        'extra_night' => [
+                            'normal' => 0,
+                            'holiday' => 0
+                        ]
+                    ];
+                }
+
+                $dataService = $service->service->service;
+                $initTime = substr($dataService->InitTime, 0, 8);
+                $breakTime = $dataService->BreakTime;
+                $dateInit = $service->DateVisit;
+                $final = Carbon::createFromFormat('Y-m-d H:i:s', $dateInit . ' ' .$initTime)->addHours($dataService->HoursToInvest);
+
+                $finalDate = $final->format('Y-m-d');
+                $initTime = substr($initTime, 0, 2);
+                $hour = $initTime;
+                for ($i = $initTime; $i < $initTime + $dataService->HoursToInvest; $i++) {
+                    if ($i == 24) {
+                        $hour = 0;
+                    }
+                    foreach ($ranges as $range) {
+                        $initRange = (int) substr($range->Start, 0, 2);
+                        $finalRange = (int) substr($range->End, 0, 2);
+                        if (($hour >= $initRange && $hour < $finalRange) ||
+                            ($hour >= $initRange && $hour > $finalRange && $initRange > $finalRange) ||
+                            ($hour < $initRange && $hour < $finalRange && $initRange > $finalRange)) {
+                            $finalDateIsHoliday = $this->isHoliday($finalDate);
+                            $initDateIsHoliday = $this->isHoliday($dateInit);
+                            if ($hour < $initTime) {
+                                $isHoliday = $finalDateIsHoliday;
+                            } else {
+                                $isHoliday = $initDateIsHoliday;
+                            }
+                            if ($range->WorkScheduleId == 1) {
+                                $workSchedule = 'basic';
+                            } elseif ($range->WorkScheduleId == 2) {
+                                $workSchedule = 'extra_basic';
+                            } elseif ($range->WorkScheduleId == 3) {
+                                $workSchedule = 'night';
+                            } elseif ($range->WorkScheduleId == 4) {
+                                $workSchedule = 'extra_night';
+                            }
+
+                            $day = $isHoliday ? 'holiday' : 'normal';
+                            $hours[$service->AssignServiceDetailId][$workSchedule][$day]++;
+                            $hour++;
+                            break;
+                        }
+                    }
+                }
+
+                if ($dataService->BreakTime && $dataService->HoursToInvest >= 10) {
+                    if ($dataService->HoursToInvest >= 10 && $dataService->HoursToInvest <= 12) {
+                        if (!$initDateIsHoliday && !$finalDateIsHoliday) {
+                            if ($hours[$service->AssignServiceDetailId]['basic']['normal'] > $hours[$service->AssignServiceDetailId]['night']['normal']) {
+                                $hours[$service->AssignServiceDetailId]['basic']['normal'] -= $dataService->BreakTime;
+                                $hours[$service->AssignServiceDetailId]['basic']['breakTime'] += $dataService->BreakTime;
+                            } else {
+                                $hours[$service->AssignServiceDetailId]['night']['normal'] -= $dataService->BreakTime;
+                                $hours[$service->AssignServiceDetailId]['night']['breakTime'] += $dataService->BreakTime;
+                            }
+                        } else if ($initDateIsHoliday && $finalDateIsHoliday && $dateInit == $finalDate) {
+                            $hours[$service->AssignServiceDetailId]['basic']['holiday'] -= $dataService->BreakTime;
+                            $hours[$service->AssignServiceDetailId]['basic']['breakTime'] += $dataService->BreakTime;
+                        } else if (!$initDateIsHoliday && $finalDateIsHoliday) {
+                            if ($breakTime > 1) {
+                                $hours[$service->AssignServiceDetailId]['night']['normal'] -= 1;
+                                $hours[$service->AssignServiceDetailId]['night']['holiday'] -= 1;
+                                $hours[$service->AssignServiceDetailId]['night']['breakTime'] += 2;
+                            } else {
+                                $hours[$service->AssignServiceDetailId]['night']['normal'] -= 1;
+                                $hours[$service->AssignServiceDetailId]['night']['breakTime'] += 1;
+                            }
+
+                        } else if (($initDateIsHoliday && !$finalDateIsHoliday) || ($initDateIsHoliday && $finalDateIsHoliday && $dateInit != $finalDate)) {
+                            if ($breakTime > 1) {
+                                if ($hours[$service->AssignServiceDetailId]['basic']['holiday']) {
+                                    $hours[$service->AssignServiceDetailId]['basic']['holiday'] -= 1;
+                                    $hours[$service->AssignServiceDetailId]['basic']['breakTime'] += 1;
+                                    $hours[$service->AssignServiceDetailId]['night']['holiday'] -= 1;
+                                    $hours[$service->AssignServiceDetailId]['night']['breakTime'] += 1;
+                                } else {
+                                    $hours[$service->AssignServiceDetailId]['night']['holiday'] -= 2;
+                                    $hours[$service->AssignServiceDetailId]['night']['breakTime'] += 2;
+                                }
+                            } else {
+                                $hours[$service->AssignServiceDetailId]['night']['holiday'] -= 1;
+                                $hours[$service->AssignServiceDetailId]['night']['breakTime'] += 1;
+                            }
+                        }
+                    } elseif ($dataService->HoursToInvest == 24) {
+                        if (!$initDateIsHoliday && !$finalDateIsHoliday) {
+                            $hours[$service->AssignServiceDetailId]['basic']['normal'] -= 2;
+                            $hours[$service->AssignServiceDetailId]['night']['normal'] -= 2;
+                            $hours[$service->AssignServiceDetailId]['basic']['breakTime'] += 2;
+                            $hours[$service->AssignServiceDetailId]['night']['breakTime'] += 2;
+                        } elseif (!$initDateIsHoliday && $finalDateIsHoliday) {
+                            $hours[$service->AssignServiceDetailId]['basic']['holiday'] -= 2;
+                            $hours[$service->AssignServiceDetailId]['night']['normal'] -= 2;
+                            $hours[$service->AssignServiceDetailId]['basic']['breakTime'] += 2;
+                            $hours[$service->AssignServiceDetailId]['night']['breakTime'] += 2;
+                        } elseif ($initDateIsHoliday && $finalDateIsHoliday) {
+                            $hours[$service->AssignServiceDetailId]['basic']['holiday'] -= 2;
+                            $hours[$service->AssignServiceDetailId]['night']['holiday'] -= 2;
+                            $hours[$service->AssignServiceDetailId]['basic']['breakTime'] += 2;
+                            $hours[$service->AssignServiceDetailId]['night']['breakTime'] += 2;
+                        } elseif ($initDateIsHoliday && !$finalDateIsHoliday) {
+                            $hours[$service->AssignServiceDetailId]['basic']['normal'] -= 2;
+                            $hours[$service->AssignServiceDetailId]['night']['holiday'] -= 2;
+                            $hours[$service->AssignServiceDetailId]['basic']['breakTime'] += 2;
+                            $hours[$service->AssignServiceDetailId]['night']['breakTime'] += 2;
+                        }
+                    }
+                }
+            }
+
+            $header = [
+                'DOC. PROF.',
+                'NOMBRE DEL PROFESIONAL',
+                'ESPECIALIDAD',
+                'FECHA INGRESO',
+                'TIPO CONTRATO',
+                'NOMBRE DEL PACIENTE',
+                'TIPO DOCUMENTO',
+                'NÚMERO DOCUMENTO',
+                'FECHA ATENCIÓN',
+                'SERVICIO',
+                'ESTADO',
+                'TIPO DÍA 1',
+                'TIPO DÍA 2',
+                'H. BÁSICA',
+                'H.E. DIA',
+                'H.E. NOC',
+                'H.E. DIA FEST.',
+                'H.E. NOC FEST',
+                'TOTAL H.E',
+                'TOTAL HORAS',
+                'H. RECARGO NOC',
+                'H. RECARGO DIA FEST',
+                'H. RECARGO NOC FEST',
+                'TOTAL RECARGOS',
+                'H. DESCANSO',
+                'TOTAL HORAS TRABAJADAS',
+                'FECHA VERIFICADO',
+                'VERIFICADO POR'
+            ];
+
+            $data = [];
+            foreach ($hours as $key => $value) {
+                $service = ServiceDetail::with(['professional', 'service', 'state'])->findOrFail($key);
+                $professional = $service->professional;
+                $patient = $service->service->patient;
+                $name = $professional->user->FirstName . ' ';
+                if ($professional->user->SecondName) {
+                    $name .= $professional->user->SecondName . ' ';
+                }
+                $name .= $professional->user->Surname . ' ';
+                if ($professional->user->SecondSurname) {
+                    $name .= $professional->user->SecondSurname;
+                }
+
+                $dataService = $service->service->service;
+                $initTime = substr($dataService->InitTime, 0, 8);
+                $dateInit = $service->DateVisit;
+                $final = Carbon::createFromFormat('Y-m-d H:i:s', $dateInit . ' ' .$initTime)->addHours($dataService->HoursToInvest);
+                $finalDate = $final->format('Y-m-d');
+
+                $initDateIsHoliday = $this->isHoliday($dateInit) ? 'FESTIVO' : 'HÁBIL';
+                $finalDateIsHoliday = '';
+                if ($dateInit != $finalDate) {
+                    $finalDateIsHoliday = $this->isHoliday($finalDate) ? 'FESTIVO' : 'HÁBIL';
+                }
+
+                $totalExtraHours = $value['extra_basic']['normal'] +
+                    $value['extra_night']['normal'] +
+                    $value['extra_basic']['holiday'] +
+                    $value['extra_night']['holiday'];
+
+                $totalHours = $value['basic']['normal'] + $totalExtraHours;
+                $totalRecargos = $value['night']['normal'] +
+                    $value['basic']['holiday'] +
+                    $value['night']['holiday'];
+
+                $nameUser = '';
+                if ($service->VerifiedBy) {
+                    $user = User::findOrFail($service->VerifiedBy);
+                    $nameUser = $user->FirstName . ' ';
+                    if ($user->SecondName) {
+                        $nameUser .= $user->SecondName . ' ';
+                    }
+                    $nameUser .= $user->Surname . ' ';
+                    if ($user->SecondSurname) {
+                        $nameUser .= $user->SecondSurname;
+                    }
+                }
+
+                $data[] = [
+                    $professional->Document,
+                    $name,
+                    $professional->specialty->Name,
+                    $professional->DateAdmission ? Carbon::createFromFormat('Y-m-d', substr($professional->DateAdmission, 0, 10))->format('d-m-Y') : '',
+                    $professional->contractType ? $professional->contractType->Name : '',
+                    $patient->NameCompleted,
+                    $patient->documentType->Name,
+                    $patient->Document,
+                    Carbon::createFromFormat('Y-m-d', $dateInit)->format('d/m/Y'),
+                    $dataService->Name,
+                    $service->state->Name,
+                    $initDateIsHoliday,
+                    $finalDateIsHoliday,
+                    $value['basic']['normal'],
+                    $value['extra_basic']['normal'],
+                    $value['extra_night']['normal'],
+                    $value['extra_basic']['holiday'],
+                    $value['extra_night']['holiday'],
+                    $totalExtraHours,
+                    $totalHours,
+                    $value['night']['normal'],
+                    $value['basic']['holiday'],
+                    $value['night']['holiday'],
+                    $totalRecargos,
+                    $value['basic']['breakTime'] + $value['night']['breakTime'],
+                    $totalHours + $totalRecargos,
+                    $service->VerificationDate ? Carbon::createFromFormat('Y-m-d', substr($service->VerificationDate, 0, 9))->format('d/m/Y') : '',
+                    $nameUser
+                ];
+            }
+
+            $excel = new ExcelBuilder($header, $data);
+            $excel->build();
+            return $excel->get();
+        }
+    }
+
+    private function isHoliday($date)
+    {
+        $isHoliday = \DB::select("select dbo.F_CALCULA_ES_FESTIVO('$date') as isHoliday")[0]->isHoliday;
+        if (!$isHoliday) {
+            $dayWeek = Carbon::createFromFormat('Y-m-d', $date)->format('N');
+            $isHoliday = $dayWeek == 7 ? 1 : 0;
+        }
+        return $isHoliday;
     }
 }
