@@ -319,7 +319,12 @@ class PatientServiceController extends Controller
 
     public function getIrregularServices()
     {
-        return \DB::select("exec sas.GetIrregularServices");
+        $irregularServices = \DB::select("exec sas.GetIrregularServices");
+		$irregularServices = json_decode(json_encode($irregularServices), true);
+		for ($i = 0; $i < count($irregularServices); $i++) {
+			unset($irregularServices[$i]['Document'], $irregularServices[$i]['DateLastVisit']);
+		}
+		return $irregularServices;
     }
 
     public function getSuspendedServices()
@@ -351,15 +356,19 @@ class PatientServiceController extends Controller
             $rows = [];
             $header = [
                 'Paciente',
+				'Documento del Paciente',
                 'Servicio',
-                'Motivo'
+                'Motivo',
+				'Última Fecha de Visita'
             ];
 
             foreach ($data as $datum) {
                 $rows[] = [
                   $datum['PatientName'],
+				  $datum['Document'],
                   $datum['ServiceName'],
-                  $datum['Reason']
+                  $datum['Reason'],
+				  $datum['DateLastVisit']
                 ];
             }
             $excel = new ExcelBuilder($header, $rows);
